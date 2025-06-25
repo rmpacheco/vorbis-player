@@ -9,9 +9,8 @@ declare global {
       }) => SpotifyPlayer;
     };
   }
-}
 
-interface SpotifyPlayer {
+  interface SpotifyPlayer {
   connect(): Promise<boolean>;
   disconnect(): void;
   getCurrentState(): Promise<SpotifyPlaybackState | null>;
@@ -36,7 +35,7 @@ interface SpotifyPlayer {
   removeListener(event: string, callback?: (...args: unknown[]) => void): void;
 }
 
-interface SpotifyPlaybackState {
+  interface SpotifyPlaybackState {
   context: {
     uri: string;
     metadata: Record<string, unknown>;
@@ -61,7 +60,7 @@ interface SpotifyPlaybackState {
   };
 }
 
-interface SpotifyTrack {
+  interface SpotifyTrack {
   id: string;
   uri: string;
   name: string;
@@ -79,6 +78,8 @@ interface SpotifyTrack {
       width: number;
     }>;
   };
+}
+
 }
 
 export {};
