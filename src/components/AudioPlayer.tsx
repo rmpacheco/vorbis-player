@@ -267,42 +267,37 @@ const SpotifyPlayerControls = memo<{
   };
 
   return (
-    <div className="flex items-center justify-between p-4">
-      <div className="flex items-center space-x-4">
-        {currentTrack?.image && (
-          <img 
-            src={currentTrack.image} 
-            alt={currentTrack.name}
-            className="w-12 h-12 rounded-md"
-          />
-        )}
-        <div className="min-w-0">
-          <p className="text-white font-medium truncate">{currentTrack?.name || 'No track selected'}</p>
-          <p className="text-gray-400 text-sm truncate">{currentTrack?.artists || ''}</p>
-        </div>
+    <div className="flex flex-col space-y-3 p-4">
+      {/* Track Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-white font-medium truncate">{currentTrack?.name || 'No track selected'}</p>
+        <p className="text-gray-400 text-sm truncate">{currentTrack?.artists || ''}</p>
       </div>
       
-      <div className="flex items-center space-x-4">
-        <button
-          onClick={onPrevious}
-          className="text-white hover:text-gray-300 transition-colors"
-        >
-          ⏮️
-        </button>
-        
-        <button
-          onClick={handlePlayPause}
-          className="bg-green-600 hover:bg-green-700 text-white rounded-full p-2 transition-colors"
-        >
-          {isPlaying ? '⏸️' : '▶️'}
-        </button>
-        
-        <button
-          onClick={onNext}
-          className="text-white hover:text-gray-300 transition-colors"
-        >
-          ⏭️
-        </button>
+      {/* Controls */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={onPrevious}
+            className="text-white hover:text-gray-300 transition-colors"
+          >
+            ⏮️
+          </button>
+          
+          <button
+            onClick={handlePlayPause}
+            className="bg-green-600 hover:bg-green-700 text-white rounded-full p-2 transition-colors"
+          >
+            {isPlaying ? '⏸️' : '▶️'}
+          </button>
+          
+          <button
+            onClick={onNext}
+            className="text-white hover:text-gray-300 transition-colors"
+          >
+            ⏭️
+          </button>
+        </div>
         
         <div className="flex items-center space-x-2">
           <span className="text-white text-sm">🔊</span>

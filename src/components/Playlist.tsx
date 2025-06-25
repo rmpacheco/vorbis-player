@@ -1,5 +1,4 @@
 import { memo, useMemo, useCallback } from 'react';
-import { FixedSizeList as List } from 'react-window';
 import type { Track } from '../services/spotify';
 
 interface PlaylistProps {
@@ -24,33 +23,40 @@ const PlaylistItem = memo<PlaylistItemProps>(({
   return (
     <tr
       onClick={() => onSelect(index)}
-      className={`cursor-pointer transition-colors duration-200 hover:bg-neutral-700 ${
+      className={`cursor-pointer transition-all duration-150 hover:bg-neutral-700/50 border-b border-neutral-600/80 ${
         isSelected 
-          ? 'bg-neutral-600 text-white' 
-          : 'text-neutral-300'
+          ? 'bg-neutral-600 text-white shadow-sm border-neutral-500' 
+          : 'text-neutral-300 hover:text-neutral-100'
       }`}
     >
-      <td className={`px-6 py-4 whitespace-nowrap text-sm ${
+      <td className={`px-3 md:px-6 py-4 md:py-5 text-sm ${
         isSelected ? 'text-white font-medium' : 'text-neutral-200'
       }`}>
-        <div className="flex items-center gap-3">
-          <div className="truncate">
-            <div className="font-medium">{track.name}</div>
-            <div className="text-xs text-neutral-400">{track.artists}</div>
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="truncate pr-2 font-bold text-base leading-tight">{track.name}</div>
+            <div className="text-xs text-neutral-400 md:hidden truncate mt-1 font-normal opacity-75">
+              {track.artists}
+            </div>
           </div>
           {isSelected && (
-            <div className="text-white flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0 text-green-400">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
           )}
         </div>
       </td>
-      <td className={`px-6 py-4 whitespace-nowrap text-sm text-right ${
+      <td className={`hidden md:table-cell px-6 py-4 md:py-5 text-sm ${
         isSelected ? 'text-white' : 'text-neutral-400'
       }`}>
-        {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${Math.floor((track.duration_ms % 60000) / 1000).toString().padStart(2, '0')}` : '--:--'}
+        <span className="truncate block">{track.artists}</span>
+      </td>
+      <td className={`px-3 md:px-6 py-4 md:py-5 text-sm text-center ${
+        isSelected ? 'text-white' : 'text-neutral-400'
+      }`}>
+        <span className="text-sm font-mono tabular-nums">
+          {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${Math.floor((track.duration_ms % 60000) / 1000).toString().padStart(2, '0')}` : '--:--'}
+        </span>
       </td>
     </tr>
   );
@@ -73,64 +79,65 @@ const Playlist = memo<PlaylistProps>(({ tracks, currentTrackIndex, onTrackSelect
     }
   }, [sortedTracks, tracks, onTrackSelect]);
 
-  // Virtual list row renderer
-  const Row = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const track = sortedTracks[index];
-    return (
-      <div style={style}>
-        <PlaylistItem
-          track={track}
-          index={index}
-          isSelected={index === sortedCurrentTrackIndex}
-          onSelect={handleTrackSelect}
-        />
-      </div>
-    );
-  }, [sortedTracks, sortedCurrentTrackIndex, handleTrackSelect]);
-
-  // If track list is small, render normally. If large, use virtualization
-  const shouldVirtualize = sortedTracks.length > 50;
+  // Virtualization disabled to maintain proper table structure
+  // If needed for large playlists, implement with div-based layout instead of table
 
   return (
     <div className="w-full max-w-4xl mx-auto mt-6">
       <div className="bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700 shadow-sm">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-neutral-700">
+          <table className="w-full divide-y divide-neutral-700 table-fixed">
+            <colgroup>
+              <col className="w-4/5 md:w-3/4" />
+              <col className="w-1/5 md:w-1/4 min-w-[56px]" />
+            </colgroup>
             <thead className="bg-neutral-900">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                  Track - Artist
+                <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider">
+                  Track
                 </th>
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                  Duration
+                <th scope="col" className="px-3 md:px-6 py-3 text-center text-xs font-medium text-neutral-400 uppercase tracking-wider whitespace-nowrap">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mx-auto">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                  </svg>
                 </th>
               </tr>
             </thead>
             <tbody className="bg-neutral-800 divide-y divide-neutral-700">
-              {shouldVirtualize ? (
-                <tr>
-                  <td colSpan={2} className="p-0">
-                    <List
-                      height={Math.min(400, sortedTracks.length * 60)} // Max height of 400px
-                      itemCount={sortedTracks.length}
-                      itemSize={60}
-                      width="100%"
-                    >
-                      {Row}
-                    </List>
+              {sortedTracks.map((track: Track, index: number) => (
+                <tr
+                  key={`${track.name}-${track.id}`}
+                  onClick={() => handleTrackSelect(index)}
+                  className={`cursor-pointer transition-all duration-150 hover:bg-neutral-700/50 border-b border-neutral-600/80 ${
+                    index === sortedCurrentTrackIndex 
+                      ? 'bg-neutral-600 text-white shadow-sm border-neutral-500' 
+                      : 'text-neutral-300 hover:text-neutral-100'
+                  }`}
+                >
+                  <td className={`px-3 md:px-6 py-4 md:py-5 text-sm ${
+                    index === sortedCurrentTrackIndex ? 'text-white font-medium' : 'text-neutral-200'
+                  } max-w-0 truncate`}>
+                    <div className="flex items-center justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate pr-2 font-bold text-base leading-tight">{track.name}</div>
+                      </div>
+                      {index === sortedCurrentTrackIndex && (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0 text-green-400">
+                          <path d="M8 5v14l11-7z"/>
+                        </svg>
+                      )}
+                    </div>
+                  </td>
+                  <td className={`px-3 md:px-6 py-4 md:py-5 text-sm text-center ${
+                    index === sortedCurrentTrackIndex ? 'text-white' : 'text-neutral-400'
+                  } whitespace-nowrap`}>
+                    <span className="text-sm font-mono tabular-nums">
+                      {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${Math.floor((track.duration_ms % 60000) / 1000).toString().padStart(2, '0')}` : '--:--'}
+                    </span>
                   </td>
                 </tr>
-              ) : (
-                sortedTracks.map((track: Track, index: number) => (
-                  <PlaylistItem
-                    key={`${track.name}-${track.id}`}
-                    track={track}
-                    index={index}
-                    isSelected={index === sortedCurrentTrackIndex}
-                    onSelect={handleTrackSelect}
-                  />
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
