@@ -96,8 +96,10 @@ class SpotifyAuth {
 
     const code_verifier = localStorage.getItem('spotify_code_verifier');
     if (!code_verifier) {
+      console.error('Code verifier not found in localStorage. Available keys:', Object.keys(localStorage));
       throw new Error('Code verifier not found. Please restart the authentication flow.');
     }
+    console.log('Found code verifier, proceeding with token exchange...');
 
     const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -115,6 +117,15 @@ class SpotifyAuth {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Token exchange failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+        clientId: SPOTIFY_CLIENT_ID,
+        redirectUri: SPOTIFY_REDIRECT_URI,
+        hasCodeVerifier: !!code_verifier,
+        codeLength: code?.length
+      });
       throw new Error(`Token exchange failed: ${response.statusText} - ${errorText}`);
     }
 
@@ -213,7 +224,17 @@ class SpotifyAuth {
         sessionStorage.setItem('spotify_processed_code', code);
         window.history.replaceState({}, document.title, '/');
       } catch (e) {
+        console.error('Failed to handle auth callback:', e);
         sessionStorage.removeItem('spotify_processed_code');
+        
+        // If code verifier is missing, restart the auth flow
+        if (e instanceof Error && e.message.includes('Code verifier not found')) {
+          console.log('Restarting authentication flow due to missing code verifier...');
+          this.logout();
+          await this.redirectToAuth();
+          return;
+        }
+        
         this.logout();
         throw e;
       }
