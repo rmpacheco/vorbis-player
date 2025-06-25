@@ -1,4 +1,4 @@
-import { memo, useMemo, useCallback } from 'react';
+import { memo, useMemo, useCallback, useState } from 'react';
 import type { Track } from '../services/spotify';
 
 interface PlaylistProps {
@@ -20,45 +20,86 @@ const PlaylistItem = memo<PlaylistItemProps>(({
   isSelected, 
   onSelect 
 }) => {
+  const [isDragging, setIsDragging] = useState(false);
+
   return (
-    <tr
+    <div
       onClick={() => onSelect(index)}
-      className={`cursor-pointer transition-all duration-150 hover:bg-neutral-700/50 border-b border-neutral-600/80 ${
+      className={`group flex items-center gap-4 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
         isSelected 
-          ? 'bg-neutral-600 text-white shadow-sm border-neutral-500' 
-          : 'text-neutral-300 hover:text-neutral-100'
-      }`}
+          ? 'bg-green-600/20 border border-green-500/30' 
+          : 'hover:bg-neutral-700/30 border border-transparent'
+      } ${isDragging ? 'opacity-50 scale-95' : ''}`}
+      draggable={true}
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={() => setIsDragging(false)}
     >
-      <td className={`px-3 md:px-6 py-4 md:py-5 text-sm ${
-        isSelected ? 'text-white font-medium' : 'text-neutral-200'
-      }`}>
-        <div className="flex items-center justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="truncate pr-2 font-bold text-base leading-tight">{track.name}</div>
-            <div className="text-xs text-neutral-400 md:hidden truncate mt-1 font-normal opacity-75">
-              {track.artists}
-            </div>
-          </div>
-          {isSelected && (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0 text-green-400">
+      {/* Drag Handle */}
+      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-neutral-500">
+          <rect x="3" y="4" width="3" height="3" fill="currentColor"/>
+          <rect x="10" y="4" width="3" height="3" fill="currentColor"/>
+          <rect x="17" y="4" width="3" height="3" fill="currentColor"/>
+          <rect x="3" y="10" width="3" height="3" fill="currentColor"/>
+          <rect x="10" y="10" width="3" height="3" fill="currentColor"/>
+          <rect x="17" y="10" width="3" height="3" fill="currentColor"/>
+          <rect x="3" y="16" width="3" height="3" fill="currentColor"/>
+          <rect x="10" y="16" width="3" height="3" fill="currentColor"/>
+          <rect x="17" y="16" width="3" height="3" fill="currentColor"/>
+        </svg>
+      </div>
+
+      {/* Album Artwork */}
+      <div className="relative flex-shrink-0">
+        <img 
+          src={track.image || '/api/placeholder/56/56'} 
+          alt={track.album}
+          className="w-14 h-14 rounded-lg object-cover shadow-md"
+          onError={(e) => {
+            e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHZpZXdCb3g9IjAgMCA1NiA1NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiBmaWxsPSIjNDA0MDQwIi8+CjxwYXRoIGQ9Ik0yOCAzNkMzMC4yMDkxIDM2IDMyIDM0LjIwOTEgMzIgMzJDMzIgMjkuNzkwOSAzMC4yMDkxIDI4IDI4IDI4QzI1Ljc5MDkgMjggMjQgMjkuNzkwOSAyNCAzMkMyNCAzNC4yMDkxIDI1Ljc5MDkgMzYgMjggMzZaIiBmaWxsPSIjNzA3MDcwIi8+CjxwYXRoIGQ9Ik0yOCA0NEMzNi44MzY2IDQ0IDQ0IDM2LjgzNjYgNDQgMjhDNDQgMTkuMTYzNCAzNi44MzY2IDEyIDI4IDEyQzE5LjE2MzQgMTIgMTIgMTkuMTYzNCAxMiAyOEMxMiAzNi44MzY2IDE5LjE2MzQgNDQgMjggNDRaTTI4IDQwQzM0LjYyNzQgNDAgNDAgMzQuNjI3NCA0MCAyOEM0MCAyMS4zNzI2IDM0LjYyNzQgMTYgMjggMTZDMjEuMzcyNiAxNiAxNiAyMS4zNzI2IDE2IDI4QzE2IDM0LjYyNzQgMjEuMzcyNiA0MCAyOCA0MFoiIGZpbGw9IiM3MDcwNzAiLz4KPC9zdmc+';
+          }}
+        />
+        {isSelected && (
+          <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="text-white">
               <path d="M8 5v14l11-7z"/>
             </svg>
-          )}
+          </div>
+        )}
+      </div>
+
+      {/* Track Info */}
+      <div className="flex-1 min-w-0">
+        <div className={`font-semibold text-base leading-tight truncate ${
+          isSelected ? 'text-white' : 'text-neutral-100'
+        }`}>
+          {track.name}
         </div>
-      </td>
-      <td className={`hidden md:table-cell px-6 py-4 md:py-5 text-sm ${
-        isSelected ? 'text-white' : 'text-neutral-400'
-      }`}>
-        <span className="truncate block">{track.artists}</span>
-      </td>
-      <td className={`px-3 md:px-6 py-4 md:py-5 text-sm text-center ${
-        isSelected ? 'text-white' : 'text-neutral-400'
-      }`}>
-        <span className="text-sm font-mono tabular-nums">
+        <div className={`text-sm mt-1 truncate ${
+          isSelected ? 'text-green-100' : 'text-neutral-400'
+        }`}>
+          {track.artists}
+        </div>
+      </div>
+
+      {/* Duration and Menu */}
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <span className={`text-sm font-mono tabular-nums ${
+          isSelected ? 'text-green-100' : 'text-neutral-400'
+        }`}>
           {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${Math.floor((track.duration_ms % 60000) / 1000).toString().padStart(2, '0')}` : '--:--'}
         </span>
-      </td>
-    </tr>
+        
+        {/* Menu Button */}
+        <button className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-1 hover:bg-neutral-600 rounded">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-neutral-400">
+            <circle cx="12" cy="5" r="2" fill="currentColor"/>
+            <circle cx="12" cy="12" r="2" fill="currentColor"/>
+            <circle cx="12" cy="19" r="2" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 });
 
@@ -84,62 +125,24 @@ const Playlist = memo<PlaylistProps>(({ tracks, currentTrackIndex, onTrackSelect
 
   return (
     <div className="w-full max-w-4xl mx-auto mt-6">
-      <div className="bg-neutral-800 rounded-lg overflow-hidden border border-neutral-700 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full divide-y divide-neutral-700 table-fixed">
-            <colgroup>
-              <col className="w-4/5 md:w-3/4" />
-              <col className="w-1/5 md:w-1/4 min-w-[56px]" />
-            </colgroup>
-            <thead className="bg-neutral-900">
-              <tr>
-                <th scope="col" className="px-3 md:px-6 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider">
-                  Track
-                </th>
-                <th scope="col" className="px-3 md:px-6 py-3 text-center text-xs font-medium text-neutral-400 uppercase tracking-wider whitespace-nowrap">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mx-auto">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12,6 12,12 16,14"/>
-                  </svg>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-neutral-800 divide-y divide-neutral-700">
-              {sortedTracks.map((track: Track, index: number) => (
-                <tr
-                  key={`${track.name}-${track.id}`}
-                  onClick={() => handleTrackSelect(index)}
-                  className={`cursor-pointer transition-all duration-150 hover:bg-neutral-700/50 border-b border-neutral-600/80 ${
-                    index === sortedCurrentTrackIndex 
-                      ? 'bg-neutral-600 text-white shadow-sm border-neutral-500' 
-                      : 'text-neutral-300 hover:text-neutral-100'
-                  }`}
-                >
-                  <td className={`px-3 md:px-6 py-4 md:py-5 text-sm ${
-                    index === sortedCurrentTrackIndex ? 'text-white font-medium' : 'text-neutral-200'
-                  } max-w-0 truncate`}>
-                    <div className="flex items-center justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate pr-2 font-bold text-base leading-tight">{track.name}</div>
-                      </div>
-                      {index === sortedCurrentTrackIndex && (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0 text-green-400">
-                          <path d="M8 5v14l11-7z"/>
-                        </svg>
-                      )}
-                    </div>
-                  </td>
-                  <td className={`px-3 md:px-6 py-4 md:py-5 text-sm text-center ${
-                    index === sortedCurrentTrackIndex ? 'text-white' : 'text-neutral-400'
-                  } whitespace-nowrap`}>
-                    <span className="text-sm font-mono tabular-nums">
-                      {track.duration_ms ? `${Math.floor(track.duration_ms / 60000)}:${Math.floor((track.duration_ms % 60000) / 1000).toString().padStart(2, '0')}` : '--:--'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="bg-neutral-800/50 rounded-lg backdrop-blur-sm border border-neutral-700/50">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-neutral-700/50">
+          <h3 className="text-lg font-semibold text-white">Up Next</h3>
+          <p className="text-sm text-neutral-400 mt-1">{sortedTracks.length} tracks</p>
+        </div>
+        
+        {/* Playlist Items */}
+        <div className="p-4 space-y-2 max-h-96 overflow-y-auto">
+          {sortedTracks.map((track: Track, index: number) => (
+            <PlaylistItem
+              key={`${track.name}-${track.id}`}
+              track={track}
+              index={index}
+              isSelected={index === sortedCurrentTrackIndex}
+              onSelect={handleTrackSelect}
+            />
+          ))}
         </div>
       </div>
     </div>
