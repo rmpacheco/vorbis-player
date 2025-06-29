@@ -202,25 +202,27 @@ export class ContentFilterService {
   }
 
   private passesBasicFilters(video: VideoSearchResult): boolean {
-    // Filter out ads and promotional content
-    if (this.isAdOrPromo(video)) {
-      return false;
-    }
+    // TODO: Implement basic filters
+
+    // // Filter out ads and promotional content
+    // if (this.isAdOrPromo(video)) {
+    //   return false;
+    // }
     
-    // Filter out inappropriate lengths
-    if (!this.isAppropriateLength(video.duration)) {
-      return false;
-    }
+    // // Filter out inappropriate lengths
+    // if (!this.isAppropriateLength(video.duration)) {
+    //   return false;
+    // }
     
-    // Filter out videos with suspicious titles
-    if (this.hasSuspiciousTitle(video.title)) {
-      return false;
-    }
+    // // Filter out videos with suspicious titles
+    // if (this.hasSuspiciousTitle(video.title)) {
+    //   return false;
+    // }
     
-    // Filter out channels with very few subscribers (proxy: view count)
-    if (this.hasLowQualityMetrics(video)) {
-      return false;
-    }
+    // // Filter out channels with very few subscribers (proxy: view count)
+    // if (this.hasLowQualityMetrics(video)) {
+    //   return false;
+    // }
     
     return true;
   }

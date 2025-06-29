@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
 const Playlist = lazy(() => import('./Playlist'));
-const MediaCollage = lazy(() => import('./MediaCollage'));
 const VideoAdmin = lazy(() => import('./admin/VideoAdmin'));
 const AdminKeyCombo = lazy(() => import('./admin/AdminKeyCombo'));
 import { getSpotifyUserPlaylists, spotifyAuth } from '../services/spotify';
@@ -13,33 +12,33 @@ import { Button } from '../components/styled';
 import { Skeleton } from '../components/styled';
 import { Alert, AlertDescription } from '../components/styled';
 import { flexCenter, flexColumn, cardBase } from '../styles/utils';
+import VideoPlayer from './VideoPlayer';
 
 // Styled components
 const Container = styled.div`
   min-height: 100vh;
   width: 100%;
   ${flexCenter};
-  padding: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ theme }: any) => theme.spacing.sm};
   
-  @media (min-width: ${({ theme }) => theme.breakpoints.sm}) {
-    padding: ${({ theme }) => theme.spacing.md};
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.sm}) {
+    padding: ${({ theme }: any) => theme.spacing.md};
   }
 `;
 
 const ContentWrapper = styled.div`
   width: 100%;
-  max-width: 32rem; /* 512px - mobile/small tablet */
+  max-width: 48rem; /* 768px - matches playlist and video nicely */
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  box-sizing: border-box;
   
-  @media (min-width: ${({ theme }) => theme.breakpoints.md}) {
-    max-width: 48rem; /* 768px - larger tablet */
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.lg}) {
+    max-width: 60rem;
   }
-  
-  @media (min-width: ${({ theme }) => theme.breakpoints.lg}) {
-    max-width: 60rem; /* 960px - desktop */
-  }
-  
-  @media (min-width: ${({ theme }) => theme.breakpoints.xl}) {
-    max-width: 72rem; /* 1152px - large desktop */
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.xl}) {
+    max-width: 72rem;
   }
 `;
 
@@ -52,7 +51,7 @@ const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boole
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(115, 115, 115, 0.5);
-  border-radius: ${({ theme }) => theme.borderRadius.lg};
+  border-radius: ${({ theme }: any) => theme.borderRadius.lg};
   border-top: 1px solid rgba(115, 115, 115, 0.5);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
   
@@ -65,7 +64,7 @@ const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boole
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      border-radius: ${({ theme }) => theme.borderRadius.lg};
+      border-radius: ${({ theme }: any) => theme.borderRadius.lg};
       z-index: 0;
     }
     
@@ -75,7 +74,7 @@ const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boole
       inset: 0;
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(8px);
-      border-radius: ${({ theme }) => theme.borderRadius.lg};
+      border-radius: ${({ theme }: any) => theme.borderRadius.lg};
       z-index: 1;
     }
   ` : `
@@ -87,27 +86,27 @@ const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boole
 const SpinIcon = styled.div`
   width: 4rem;
   height: 4rem;
-  background-color: ${({ theme }) => theme.colors.primary};
+  background-color: ${({ theme }: any) => theme.colors.primary};
   border-radius: 50%;
   ${flexCenter};
-  margin: 0 auto ${({ theme }) => theme.spacing.lg};
+  margin: 0 auto ${({ theme }: any) => theme.spacing.lg};
 `;
 
 const SkeletonContainer = styled.div`
   ${flexColumn};
-  gap: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }: any) => theme.spacing.md};
 `;
 
 const PlaylistFallback = styled.div`
   width: 100%;
-  margin-top: ${({ theme }) => theme.spacing.lg};
+  margin-top: ${({ theme }: any) => theme.spacing.lg};
 `;
 
 const PlaylistFallbackCard = styled.div`
-  background-color: ${({ theme }) => theme.colors.gray[800]};
-  border-radius: ${({ theme }) => theme.borderRadius.lg};
-  padding: ${({ theme }) => theme.spacing.md};
-  border: 1px solid ${({ theme }) => theme.colors.gray[700]};
+  background-color: ${({ theme }: any) => theme.colors.gray[800]};
+  border-radius: ${({ theme }: any) => theme.borderRadius.lg};
+  padding: ${({ theme }: any) => theme.spacing.md};
+  border: 1px solid ${({ theme }: any) => theme.colors.gray[700]};
 `;
 
 const spin = keyframes`
@@ -125,7 +124,7 @@ const AdminSpinner = styled.div`
   width: 3rem;
   height: 3rem;
   border: 2px solid transparent;
-  border-bottom: 2px solid ${({ theme }) => theme.colors.white};
+  border-bottom: 2px solid ${({ theme }: any) => theme.colors.white};
 `;
 
 const AdminOverlay = styled.div`
@@ -141,13 +140,13 @@ const PlayerControlsContainer = styled.div`
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.spacing.sm};
-  padding: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }: any) => theme.spacing.sm};
+  padding: ${({ theme }: any) => theme.spacing.md};
   
-  @media (min-width: ${({ theme }) => theme.breakpoints.sm}) {
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.sm}) {
     flex-direction: row;
     align-items: center;
-    gap: ${({ theme }) => theme.spacing.md};
+    gap: ${({ theme }: any) => theme.spacing.md};
   }
 `;
 
@@ -157,19 +156,19 @@ const PlayerTrackInfo = styled.div`
 `;
 
 const PlayerTrackName = styled.div`
-  font-weight: ${({ theme }) => theme.fontWeight.semibold};
-  font-size: ${({ theme }) => theme.fontSize.base};
+  font-weight: ${({ theme }: any) => theme.fontWeight.semibold};
+  font-size: ${({ theme }: any) => theme.fontSize.base};
   line-height: 1.25;
-  color: ${({ theme }) => theme.colors.white};
+  color: ${({ theme }: any) => theme.colors.white};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 const PlayerTrackArtist = styled.div`
-  font-size: ${({ theme }) => theme.fontSize.sm};
-  margin-top: ${({ theme }) => theme.spacing.xs};
-  color: ${({ theme }) => theme.colors.gray[400]};
+  font-size: ${({ theme }: any) => theme.fontSize.sm};
+  margin-top: ${({ theme }: any) => theme.spacing.xs};
+  color: ${({ theme }: any) => theme.colors.gray[400]};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -179,9 +178,9 @@ const ControlsRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }: any) => theme.spacing.md};
   
-  @media (min-width: ${({ theme }) => theme.breakpoints.sm}) {
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.sm}) {
     justify-content: flex-start;
   }
 `;
@@ -189,7 +188,7 @@ const ControlsRow = styled.div`
 const ControlButtons = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
+  gap: ${({ theme }: any) => theme.spacing.sm};
   flex-shrink: 0;
 `;
 
@@ -217,7 +216,7 @@ const ControlButton = styled.button<{ isPlaying?: boolean }>`
     }
   ` : `
     background: rgba(115, 115, 115, 0.2);
-    color: ${({ theme }) => theme.colors.white};
+    color: ${({ theme }: any) => theme.colors.white};
     
     &:hover {
       background: rgba(115, 115, 115, 0.3);
@@ -228,18 +227,18 @@ const ControlButton = styled.button<{ isPlaying?: boolean }>`
 const VolumeButton = styled.button`
   border: none;
   background: transparent;
-  color: ${({ theme }) => theme.colors.gray[400]};
+  color: ${({ theme }: any) => theme.colors.gray[400]};
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: ${({ theme }) => theme.spacing.xs};
-  border-radius: ${({ theme }) => theme.borderRadius.md};
+  padding: ${({ theme }: any) => theme.spacing.xs};
+  border-radius: ${({ theme }: any) => theme.borderRadius.md};
   transition: all 0.2s ease;
   
   &:hover {
     background: rgba(115, 115, 115, 0.2);
-    color: ${({ theme }) => theme.colors.white};
+    color: ${({ theme }: any) => theme.colors.white};
   }
   
   svg {
@@ -247,6 +246,15 @@ const VolumeButton = styled.button`
     height: 1rem;
     fill: currentColor;
   }
+`;
+
+const InfoControls = styled.div`
+  width: 100%;
+  margin-bottom: 1.5rem;
+  background: rgba(38, 38, 38, 0.5);
+  border-radius: 0.5rem;
+  padding: 1.5rem 1rem 1rem 1rem;
+  color: white;
 `;
 
 const AudioPlayerComponent = () => {
@@ -448,29 +456,23 @@ const AudioPlayerComponent = () => {
 
     return (
       <ContentWrapper>
-        <Suspense fallback={
-          <div style={{ 
-            background: 'rgba(38, 38, 38, 0.5)', 
-            backdropFilter: 'blur(12px)', 
-            borderRadius: '0.5rem', 
-            padding: '1rem', 
-            marginBottom: '1.5rem',
-            textAlign: 'center',
-            color: 'rgba(255, 255, 255, 0.6)'
-          }}>
-            Loading video player...
-          </div>
-        }>
-          <MediaCollage currentTrack={currentTrack} />
+        <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
+          <VideoPlayer currentTrack={currentTrack} />
         </Suspense>
-        <PlaylistSection>
-          <Suspense fallback={
-            <PlaylistFallback>
-              <PlaylistFallbackCard>
-                <div style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>Loading playlist...</div>
-              </PlaylistFallbackCard>
-            </PlaylistFallback>
-          }>
+        <InfoControls>
+          <div style={{ marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1.15rem' }}>Now Playing</div>
+          <div style={{ marginBottom: '1rem', color: '#d1d5db' }}>{currentTrack?.name} · {currentTrack?.artists}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <Button onClick={handlePrevious} variant="secondary">◀ Prev</Button>
+            <span style={{ color: '#fff', fontSize: '1rem' }}>{tracks.length > 0 ? `${currentTrackIndex + 1} / ${tracks.length}` : ''}</span>
+            <Button onClick={handleNext} variant="secondary">Next ▶</Button>
+          </div>
+          <Button onClick={() => playTrack(Math.floor(Math.random() * tracks.length))} style={{ marginTop: 4 }}>
+            SHUFFLE 🎵
+          </Button>
+        </InfoControls>
+        <PlaylistSection style={{ marginBottom: 0 }}>
+          <Suspense fallback={<PlaylistFallback><PlaylistFallbackCard><div style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>Loading playlist...</div></PlaylistFallbackCard></PlaylistFallback>}>
             <Playlist
               tracks={tracks}
               currentTrackIndex={currentTrackIndex}
@@ -478,17 +480,19 @@ const AudioPlayerComponent = () => {
             />
           </Suspense>
         </PlaylistSection>
-        <LoadingCard backgroundImage={currentTrack?.image}>
-          <CardContent style={{ padding: '1rem' }}>
-            <SpotifyPlayerControls
-              currentTrack={currentTrack}
-              onPlay={() => spotifyPlayer.resume()}
-              onPause={() => spotifyPlayer.pause()}
-              onNext={handleNext}
-              onPrevious={handlePrevious}
-            />
-          </CardContent>
-        </LoadingCard>
+        <div style={{ marginTop: '1.5rem' }}>
+          <LoadingCard backgroundImage={currentTrack?.image}>
+            <CardContent style={{ padding: '1rem' }}>
+              <SpotifyPlayerControls
+                currentTrack={currentTrack}
+                onPlay={() => spotifyPlayer.resume()}
+                onPause={() => spotifyPlayer.pause()}
+                onNext={handleNext}
+                onPrevious={handlePrevious}
+              />
+            </CardContent>
+          </LoadingCard>
+        </div>
       </ContentWrapper>
     );
   };

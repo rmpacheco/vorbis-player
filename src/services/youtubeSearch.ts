@@ -31,10 +31,6 @@ interface CacheEntry {
 export class YouTubeSearchService {
   private readonly SEARCH_BASE_URL = 'https://www.youtube.com/results';
   private readonly LOCAL_PROXY_URL = 'http://127.0.0.1:3001/youtube/search';
-  private readonly FALLBACK_PROXIES = [
-    'https://api.allorigins.win/raw?url=',
-    'https://corsproxy.io/?'
-  ];
   private readonly REQUEST_DELAY = 1000; // Rate limiting
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   
@@ -72,7 +68,13 @@ export class YouTubeSearchService {
       
       // Extract video IDs and metadata
       const videoIds = this.extractVideoIds(html);
-      const results = this.parseVideoMetadata(html, videoIds);
+      const results: VideoSearchResult[] = videoIds.map(id => ({
+        id,
+        title: `YouTube Video (${id})`,
+        channelName: '',
+        duration: '',
+        thumbnailUrl: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+      }));
       
       // Cache results
       await this.setCachedResults(cacheKey, results);
@@ -94,11 +96,9 @@ export class YouTubeSearchService {
 
   private async fetchSearchPage(query: string): Promise<string> {
     const encodedQuery = encodeURIComponent(query);
-    
     // First, try the local proxy server
     try {
       console.log('🔄 Attempting YouTube search via local proxy server...');
-      
       const localProxyUrl = `${this.LOCAL_PROXY_URL}?q=${encodedQuery}`;
       const response = await fetch(localProxyUrl, {
         method: 'GET',
@@ -107,7 +107,6 @@ export class YouTubeSearchService {
           'Cache-Control': 'max-age=0'
         }
       });
-
       if (response.ok) {
         const html = await response.text();
         if (html && html.length > 0) {
@@ -122,50 +121,8 @@ export class YouTubeSearchService {
       console.log('⚠️ Local proxy unavailable:', error instanceof Error ? error.message : 'Unknown error');
       console.log('💡 Make sure to start the proxy server: cd proxy-server && npm install && npm start');
     }
-
-    // Fallback to external proxies
-    console.log('🔄 Falling back to external proxy services...');
-    const searchUrl = `${this.SEARCH_BASE_URL}?search_query=${encodedQuery}`;
-    const userAgent = this.getRandomUserAgent();
-    
-    for (let i = 0; i < this.FALLBACK_PROXIES.length; i++) {
-      const proxy = this.FALLBACK_PROXIES[i];
-      const proxiedUrl = `${proxy}${encodeURIComponent(searchUrl)}`;
-      
-      try {
-        console.log(`🔄 Attempting external proxy ${i + 1}/${this.FALLBACK_PROXIES.length}:`, proxy);
-        
-        const response = await fetch(proxiedUrl, {
-          method: 'GET',
-          headers: {
-            'User-Agent': userAgent,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Cache-Control': 'max-age=0'
-          }
-        });
-
-        if (!response.ok) {
-          console.log(`❌ External proxy ${i + 1} failed with status:`, response.status);
-          continue;
-        }
-
-        const html = await response.text();
-        
-        if (html.length === 0) {
-          console.log(`❌ External proxy ${i + 1} returned empty response`);
-          continue;
-        }
-
-        console.log(`✅ External proxy ${i + 1} succeeded`);
-        return html;
-      } catch (error) {
-        console.log(`❌ External proxy ${i + 1} error:`, error);
-        continue;
-      }
-    }
-    
-    throw new Error('❌ All proxy methods failed. Please start the local proxy server or check your internet connection.');
+    // No fallback to external proxies
+    throw new Error('❌ Local proxy failed. Please start the local proxy server or check your internet connection.');
   }
 
   extractVideoIds(html: string): string[] {
@@ -190,43 +147,62 @@ export class YouTubeSearchService {
   }
 
   private parseVideoMetadata(html: string, videoIds: string[]): VideoSearchResult[] {
-    const METADATA_PATTERNS = {
-      title: /"title":\{"runs":\[\{"text":"([^"]+)"/g,
-      channelName: /"ownerText":\{"runs":\[\{"text":"([^"]+)"/g,
-      duration: /"lengthText":\{"accessibility":\{"accessibilityData":\{"label":"([^"]+)"/g,
-      viewCount: /"viewCountText":\{"simpleText":"([^"]+)"/g,
-      uploadDate: /"publishedTimeText":\{"simpleText":"([^"]+)"/g
-    };
-
-    const results: VideoSearchResult[] = [];
-    
-    // Extract all metadata matches
-    const titles = this.extractAllMatches(html, METADATA_PATTERNS.title);
-    const channelNames = this.extractAllMatches(html, METADATA_PATTERNS.channelName);
-    const durations = this.extractAllMatches(html, METADATA_PATTERNS.duration);
-    const viewCounts = this.extractAllMatches(html, METADATA_PATTERNS.viewCount);
-    const uploadDates = this.extractAllMatches(html, METADATA_PATTERNS.uploadDate);
-
-    // Match video IDs with metadata (best effort)
-    videoIds.forEach((videoId, index) => {
-      const title = titles[index] || `Video ${videoId}`;
-      const channelName = channelNames[index] || 'Unknown Channel';
-      const duration = this.parseDurationFromLabel(durations[index] || '0:00');
-      const viewCount = this.parseViewCount(viewCounts[index]);
-      const uploadDate = uploadDates[index];
-
-      results.push({
-        id: videoId,
-        title: this.cleanText(title),
-        channelName: this.cleanText(channelName),
-        duration,
-        viewCount,
-        uploadDate,
-        thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-      });
-    });
-
-    return results;
+    // Robust: extract all videoRenderer JSON blocks and parse them
+    const videoResults: VideoSearchResult[] = [];
+    const videoRendererRegex = /\{"videoRenderer":\{(.*?)\}\}/gs;
+    let match;
+    while ((match = videoRendererRegex.exec(html)) !== null) {
+      try {
+        const jsonStr = '{"videoRenderer":{' + match[1] + '}}';
+        const obj = JSON.parse(jsonStr);
+        const vr = obj.videoRenderer;
+        const id = vr.videoId;
+        if (!id || typeof id !== 'string' || id.length !== 11) continue;
+        // Title
+        let title = '';
+        if (vr.title && vr.title.runs && Array.isArray(vr.title.runs) && vr.title.runs[0]) {
+          title = vr.title.runs[0].text;
+        }
+        // Channel
+        let channelName = '';
+        if (vr.ownerText && vr.ownerText.runs && Array.isArray(vr.ownerText.runs) && vr.ownerText.runs[0]) {
+          channelName = vr.ownerText.runs[0].text;
+        }
+        // Duration
+        let duration = '';
+        if (vr.lengthText && vr.lengthText.accessibility && vr.lengthText.accessibility.accessibilityData && vr.lengthText.accessibility.accessibilityData.label) {
+          duration = vr.lengthText.accessibility.accessibilityData.label;
+        }
+        // View count
+        let viewCount: number | undefined = undefined;
+        if (vr.viewCountText && vr.viewCountText.simpleText) {
+          viewCount = this.parseViewCount(vr.viewCountText.simpleText);
+        }
+        // Upload date
+        let uploadDate: string | undefined = undefined;
+        if (vr.publishedTimeText && vr.publishedTimeText.simpleText) {
+          uploadDate = vr.publishedTimeText.simpleText;
+        }
+        // Thumbnail
+        let thumbnailUrl = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+        if (vr.thumbnail && vr.thumbnail.thumbnails && Array.isArray(vr.thumbnail.thumbnails) && vr.thumbnail.thumbnails.length > 0) {
+          thumbnailUrl = vr.thumbnail.thumbnails[vr.thumbnail.thumbnails.length - 1].url;
+        }
+        videoResults.push({
+          id,
+          title: this.cleanText(title),
+          channelName: this.cleanText(channelName),
+          duration: this.parseDurationFromLabel(duration || '0:00'),
+          viewCount,
+          uploadDate,
+          thumbnailUrl
+        });
+      } catch (e) {
+        // Ignore parse errors for individual blocks
+        continue;
+      }
+    }
+    return videoResults;
   }
 
   private extractAllMatches(text: string, pattern: RegExp): string[] {
