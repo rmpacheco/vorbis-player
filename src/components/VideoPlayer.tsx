@@ -48,23 +48,74 @@ const StyledImage = styled.img`
   object-fit: cover;
 `;
 
-const TitleOverlay = styled.div`
+const RetryOverlay = styled.div`
   position: absolute;
-  bottom: 0;
-  left: 0;
+  top: 0;
   right: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
-  padding: 0.75rem;
+  bottom: 0;
+  width: 120px;
+  background: linear-gradient(to left, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  
+  ${VideoContainer}:hover & {
+    opacity: 1;
+    pointer-events: auto;
+  }
 `;
 
-const TitleText = styled.p`
-  color: white;
+const RetryButton = styled.button`
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: #1a1a1a;
   font-size: 0.875rem;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: white;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
 `;
+
+// Global blacklist for non-embeddable videos (persists across component remounts and page refreshes)
+const BLACKLIST_STORAGE_KEY = 'vorbis-player-video-blacklist';
+
+// Load blacklist from localStorage on app start
+const loadBlacklist = (): Set<string> => {
+  try {
+    const stored = localStorage.getItem(BLACKLIST_STORAGE_KEY);
+    if (stored) {
+      const array = JSON.parse(stored);
+      return new Set(array);
+    }
+  } catch (error) {
+    console.warn('Failed to load video blacklist from localStorage:', error);
+  }
+  return new Set<string>();
+};
+
+// Save blacklist to localStorage
+const saveBlacklist = (blacklist: Set<string>): void => {
+  try {
+    localStorage.setItem(BLACKLIST_STORAGE_KEY, JSON.stringify(Array.from(blacklist)));
+  } catch (error) {
+    console.warn('Failed to save video blacklist to localStorage:', error);
+  }
+};
+
+const globalVideoBlacklist = loadBlacklist();
 
 const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
@@ -78,7 +129,10 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
     setError(null);
     setSearchPhase('Searching YouTube...');
     try {
-      const bestVideo = await videoSearchOrchestrator.findBestVideo(track);
+      // Search for alternatives, excluding all blacklisted videos
+      const blacklistedArray = Array.from(globalVideoBlacklist);
+      const alternatives = await videoSearchOrchestrator.findAlternativeVideos(track, blacklistedArray);
+      const bestVideo = alternatives.length > 0 ? alternatives[0] : null;
       if (!bestVideo) {
         setError({
           type: 'no_results',
@@ -116,10 +170,72 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
     }
   }, []);
 
+  const handleRetry = useCallback(async () => {
+    if (!currentTrack) return;
+    
+    const currentVideoId = mediaItems[0]?.id;
+    
+    // Add current video to permanent blacklist
+    if (currentVideoId) {
+      globalVideoBlacklist.add(currentVideoId);
+      saveBlacklist(globalVideoBlacklist); // Persist to localStorage
+      console.log(`Blacklisted video ${currentVideoId}. Total blacklisted: ${globalVideoBlacklist.size}`);
+    }
+    
+    setLoading(true);
+    setError(null);
+    setSearchPhase('Finding alternative video...');
+    setMediaItems([]); // Clear current video
+    
+    try {
+      // Use findAlternativeVideos to exclude ALL blacklisted videos
+      const blacklistedArray = Array.from(globalVideoBlacklist);
+      const alternatives = await videoSearchOrchestrator.findAlternativeVideos(
+        currentTrack,
+        blacklistedArray
+      );
+      
+      if (alternatives.length > 0) {
+        const bestAlternative = alternatives[0];
+        setMediaItems([{
+          id: bestAlternative.id,
+          type: 'youtube',
+          url: youtubeService.createEmbedUrl(bestAlternative.id, {
+            autoplay: true,
+            mute: true,
+            loop: true,
+            controls: true,
+          }),
+          title: bestAlternative.title,
+          thumbnail: bestAlternative.thumbnailUrl,
+        }]);
+        setSearchPhase('');
+      } else {
+        setError({
+          type: 'no_results',
+          message: 'No alternative videos found',
+          details: `Could not find any other videos for "${currentTrack.name}" by ${currentTrack.artists}`,
+          retryable: true
+        });
+      }
+    } catch (error) {
+      setError({
+        type: 'network_error',
+        message: error instanceof Error ? error.message : 'Failed to find alternative video',
+        details: error instanceof Error ? error.stack : undefined,
+        retryable: true
+      });
+    } finally {
+      setLoading(false);
+      setSearchPhase('');
+    }
+  }, [currentTrack, mediaItems]);
+
   useEffect(() => {
     if (!currentTrack) return;
     fetchVideoForTrack(currentTrack);
   }, [currentTrack, fetchVideoForTrack]);
+
 
   if (!currentTrack) return null;
 
@@ -173,13 +289,11 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
                 }}
               />
             )}
-            {currentVideoItem.title && (
-              <TitleOverlay>
-                <TitleText>
-                  {currentVideoItem.title}
-                </TitleText>
-              </TitleOverlay>
-            )}
+            <RetryOverlay>
+              <RetryButton onClick={handleRetry}>
+                🔄 Try Another
+              </RetryButton>
+            </RetryOverlay>
           </VideoContainer>
         </AspectRatio>
       )}

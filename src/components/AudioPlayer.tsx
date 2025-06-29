@@ -459,27 +459,6 @@ const AudioPlayerComponent = () => {
         <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
           <VideoPlayer currentTrack={currentTrack} />
         </Suspense>
-        <InfoControls>
-          <div style={{ marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1.15rem' }}>Now Playing</div>
-          <div style={{ marginBottom: '1rem', color: '#d1d5db' }}>{currentTrack?.name} · {currentTrack?.artists}</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <Button onClick={handlePrevious} variant="secondary">◀ Prev</Button>
-            <span style={{ color: '#fff', fontSize: '1rem' }}>{tracks.length > 0 ? `${currentTrackIndex + 1} / ${tracks.length}` : ''}</span>
-            <Button onClick={handleNext} variant="secondary">Next ▶</Button>
-          </div>
-          <Button onClick={() => playTrack(Math.floor(Math.random() * tracks.length))} style={{ marginTop: 4 }}>
-            SHUFFLE 🎵
-          </Button>
-        </InfoControls>
-        <PlaylistSection style={{ marginBottom: 0 }}>
-          <Suspense fallback={<PlaylistFallback><PlaylistFallbackCard><div style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>Loading playlist...</div></PlaylistFallbackCard></PlaylistFallback>}>
-            <Playlist
-              tracks={tracks}
-              currentTrackIndex={currentTrackIndex}
-              onTrackSelect={playTrack}
-            />
-          </Suspense>
-        </PlaylistSection>
         <div style={{ marginTop: '1.5rem' }}>
           <LoadingCard backgroundImage={currentTrack?.image}>
             <CardContent style={{ padding: '1rem' }}>
@@ -493,6 +472,28 @@ const AudioPlayerComponent = () => {
             </CardContent>
           </LoadingCard>
         </div>
+        {/* <InfoControls>
+          <div style={{ marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '1.15rem' }}>Now Playing</div>
+          <div style={{ marginBottom: '1rem', color: '#d1d5db' }}>{currentTrack?.name} · {currentTrack?.artists}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <Button onClick={handlePrevious} variant="secondary">◀ Prev</Button>
+            <span style={{ color: '#fff', fontSize: '1rem' }}>{tracks.length > 0 ? `${currentTrackIndex + 1} / ${tracks.length}` : ''}</span>
+            <Button onClick={handleNext} variant="secondary">Next ▶</Button>
+          </div>
+          <Button onClick={() => playTrack(Math.floor(Math.random() * tracks.length))} style={{ marginTop: 4 }}>
+            SHUFFLE 🎵
+          </Button>
+        </InfoControls> */}
+        <PlaylistSection style={{ marginBottom: 0 }}>
+          <Suspense fallback={<PlaylistFallback><PlaylistFallbackCard><div style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>Loading playlist...</div></PlaylistFallbackCard></PlaylistFallback>}>
+            <Playlist
+              tracks={tracks}
+              currentTrackIndex={currentTrackIndex}
+              onTrackSelect={playTrack}
+            />
+          </Suspense>
+        </PlaylistSection>
+       
       </ContentWrapper>
     );
   };
