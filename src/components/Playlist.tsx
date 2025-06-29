@@ -42,7 +42,7 @@ const PlaylistScrollArea = styled(ScrollArea)`
 `;
 
 const PlaylistItems = styled.div`
-  padding: ${({ theme }) => theme.spacing.md};
+  padding: ${({ theme }) => theme.spacing.sm};
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing.sm};
@@ -51,8 +51,8 @@ const PlaylistItems = styled.div`
 const PlaylistItemContainer = styled.div<{ isSelected: boolean }>`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.spacing.md};
-  padding: ${({ theme }) => theme.spacing.md};
+  gap: ${({ theme }) => theme.spacing.sm};
+  padding: ${({ theme }) => theme.spacing.sm};
   border-radius: ${({ theme }) => theme.borderRadius.lg};
   cursor: pointer;
   transition: all 0.2s ease;
