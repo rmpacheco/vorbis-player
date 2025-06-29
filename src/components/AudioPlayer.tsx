@@ -548,12 +548,14 @@ const AudioPlayerComponent = () => {
 
     return (
       <ContentWrapper>
-        <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
-          <VideoPlayer currentTrack={currentTrack} />
-        </Suspense>
         <div style={{ marginTop: '1.5rem' }}>
           <LoadingCard backgroundImage={currentTrack?.image}>
-            <CardContent style={{ padding: '1rem' }}>
+        
+            <CardContent style={{ padding: '0.5rem', position: 'relative', zIndex: 2 }}>
+              <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
+                <VideoPlayer currentTrack={currentTrack} />
+              </Suspense>
+          
               <SpotifyPlayerControls
                 currentTrack={currentTrack}
                 onPlay={() => spotifyPlayer.resume()}
