@@ -42,9 +42,100 @@ const ContentWrapper = styled.div`
   }
 `;
 
-const PlaylistSection = styled.div`
-  margin-bottom: 0;
+const PlaylistToggleButton = styled(Button)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
 `;
+
+const PlaylistDrawer = styled.div<{ isOpen: boolean }>`
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  transform: translateX(${props => props.isOpen ? '0' : '100%'});
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  overflow-y: auto;
+  padding: 1rem;
+  box-sizing: border-box;
+  
+  @media (max-width: 480px) {
+    width: 100vw;
+  }
+`;
+
+const PlaylistContent = styled.div`
+  padding: 0.5rem 0 1rem 0;
+  
+  /* Ensure playlist cards have proper spacing from top and bottom */
+  > div:first-child {
+    margin-top: 0;
+  }
+  
+  > div:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const PlaylistOverlay = styled.div<{ isOpen: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  opacity: ${props => props.isOpen ? 1 : 0};
+  visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 999;
+`;
+
+const PlaylistHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const PlaylistTitle = styled.h3`
+  color: white;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+`;
+
 
 const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boolean }>`
   ${cardBase};
@@ -265,6 +356,7 @@ const AudioPlayerComponent = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   // const [shuffleCounter, setShuffleCounter] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(false);
 
   const fetchTracks = async () => {
     if (window.location.pathname === '/auth/spotify/callback') {
@@ -484,15 +576,34 @@ const AudioPlayerComponent = () => {
             SHUFFLE 🎵
           </Button>
         </InfoControls> */}
-        <PlaylistSection style={{ marginBottom: 0 }}>
-          <Suspense fallback={<PlaylistFallback><PlaylistFallbackCard><div style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>Loading playlist...</div></PlaylistFallbackCard></PlaylistFallback>}>
-            <Playlist
-              tracks={tracks}
-              currentTrackIndex={currentTrackIndex}
-              onTrackSelect={playTrack}
-            />
-          </Suspense>
-        </PlaylistSection>
+        <PlaylistToggleButton onClick={() => setShowPlaylist(true)}>
+          📋 View Playlist ({tracks.length} tracks)
+        </PlaylistToggleButton>
+
+        <PlaylistOverlay 
+          isOpen={showPlaylist} 
+          onClick={() => setShowPlaylist(false)} 
+        />
+        
+        <PlaylistDrawer isOpen={showPlaylist}>
+          <PlaylistHeader>
+            <PlaylistTitle>Playlist ({tracks.length} tracks)</PlaylistTitle>
+            <CloseButton onClick={() => setShowPlaylist(false)}>×</CloseButton>
+          </PlaylistHeader>
+          
+          <PlaylistContent>
+            <Suspense fallback={<PlaylistFallback><PlaylistFallbackCard><div style={{ animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite', color: 'rgba(255, 255, 255, 0.6)', textAlign: 'center' }}>Loading playlist...</div></PlaylistFallbackCard></PlaylistFallback>}>
+              <Playlist
+                tracks={tracks}
+                currentTrackIndex={currentTrackIndex}
+                onTrackSelect={(index) => {
+                  playTrack(index);
+                  setShowPlaylist(false); // Close drawer after selecting track
+                }}
+              />
+            </Suspense>
+          </PlaylistContent>
+        </PlaylistDrawer>
        
       </ContentWrapper>
     );
