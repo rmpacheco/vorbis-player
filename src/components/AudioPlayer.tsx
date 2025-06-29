@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
 const Playlist = lazy(() => import('./Playlist'));
-// import MediaCollage from './MediaCollage';
+const MediaCollage = lazy(() => import('./MediaCollage'));
 const VideoAdmin = lazy(() => import('./admin/VideoAdmin'));
 const AdminKeyCombo = lazy(() => import('./admin/AdminKeyCombo'));
 import { getSpotifyUserPlaylists, spotifyAuth } from '../services/spotify';
@@ -424,8 +424,8 @@ const AudioPlayerComponent = () => {
 
     if (isInitialLoad) {
       return (
-        <LoadingCard standalone style={{ padding: '2rem', textAlign: 'center' }}>
-          <CardContent>
+        <LoadingCard standalone>
+          <CardContent style={{ padding: '2rem', textAlign: 'center' }}>
             <SpinIcon>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
                 <path d="M8 5v14l11-7z" />
@@ -448,10 +448,21 @@ const AudioPlayerComponent = () => {
 
     return (
       <ContentWrapper>
-        {/* <MediaCollage
-          currentTrack={currentTrack}
-          shuffleCounter={shuffleCounter}
-        /> */}
+        <Suspense fallback={
+          <div style={{ 
+            background: 'rgba(38, 38, 38, 0.5)', 
+            backdropFilter: 'blur(12px)', 
+            borderRadius: '0.5rem', 
+            padding: '1rem', 
+            marginBottom: '1.5rem',
+            textAlign: 'center',
+            color: 'rgba(255, 255, 255, 0.6)'
+          }}>
+            Loading video player...
+          </div>
+        }>
+          <MediaCollage currentTrack={currentTrack} />
+        </Suspense>
         <PlaylistSection>
           <Suspense fallback={
             <PlaylistFallback>

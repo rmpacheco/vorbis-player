@@ -1,16 +1,15 @@
 import { useState, useEffect, memo, useCallback, useRef } from 'react';
 import type { Track } from '../services/spotify';
 import { youtubeService } from '../services/youtube';
+import { videoSearchOrchestrator } from '../services/videoSearchOrchestrator';
 import { HyperText } from './hyper-text';
-import { useDebounce } from '../hooks/useDebounce';
 import { Card, CardContent } from './ui/card';
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { Toggle } from './ui/toggle';
 import { AspectRatio } from './ui/aspect-ratio';
-import { Skeleton } from './ui/skeleton';
 import { cn } from '../lib/utils';
-
-type VideoMode = '80sTV' | '90sTV';
+import { LoadingIndicator } from './ui/LoadingIndicator';
+import { SearchErrorDisplay, type SearchError } from './ui/SearchErrorDisplay';
+import { FallbackVideoDisplay } from './ui/FallbackVideoDisplay';
 
 interface MediaItem {
   id: string;
@@ -22,79 +21,78 @@ interface MediaItem {
 
 interface MediaCollageProps {
   currentTrack: Track | null;
-  shuffleCounter: number;
 }
 
-const MediaCollage = memo<MediaCollageProps>(({ currentTrack, shuffleCounter }) => {
+const MediaCollage = memo<MediaCollageProps>(({ currentTrack }) => {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [internalShuffleCounter, setInternalShuffleCounter] = useState(0);
-  const [videoMode, setVideoMode] = useState<VideoMode>(() => {
-    const saved = localStorage.getItem('vorbis-player-video-mode');
-    return (saved as VideoMode) || '80sTV';
-  });
+  const [searchPhase, setSearchPhase] = useState<string>('');
+  const [error, setError] = useState<SearchError | null>(null);
   const [lockVideoToTrack, setLockVideoToTrack] = useState<boolean>(() => {
     const saved = localStorage.getItem('vorbis-player-lock-video');
     return saved === 'true';
   });
   const lockedVideoRef = useRef<MediaItem | null>(null);
 
-  const debouncedShuffleCounter = useDebounce(shuffleCounter, 300);
-  const debouncedInternalShuffleCounter = useDebounce(internalShuffleCounter, 300);
 
-  const getModeEmoji = useCallback((mode: VideoMode) => {
-    switch (mode) {
-      case '90sTV': return '⓽⓪s';
-      case '80sTV': return '8️⃣0️⃣s';
-      default: return '8️⃣0️⃣s'; // default to 80sTV
-    }
-  }, []);
-
-  const getModeTitle = useCallback((mode: VideoMode) => {
-    switch (mode) {
-      case '80sTV': return "80's TV";
-      case '90sTV': return "90's TV";
-      default: return '80sTV';
-    }
-  }, []);
 
   const fetchMediaContent = useCallback(async (track: Track) => {
     if (!track) return;
 
     setMediaItems([]);
     setLoading(true);
+    setError(null);
+    
     try {
-      const videoIds = await youtubeService.loadVideoIdsFromCategory(videoMode);
-      if (videoIds.length === 0) {
-        throw new Error(`No ${videoMode} video IDs found.`);
+      setSearchPhase('Searching YouTube...');
+      
+      // Use videoSearchOrchestrator to find the best video for the track
+      const bestVideo = await videoSearchOrchestrator.findBestVideo(track);
+      
+      if (!bestVideo) {
+        console.log(`No suitable video found for: ${track.name} by ${track.artists}`);
+        setError({
+          type: 'no_results',
+          message: 'No videos found for this track',
+          details: `Could not find any suitable videos for "${track.name}" by ${track.artists}`,
+          retryable: true
+        });
+        setMediaItems([]);
+        return;
       }
 
-      const combinedShuffleCount = debouncedShuffleCounter + debouncedInternalShuffleCounter;
-      const videoIndex = (combinedShuffleCount + Math.floor(Math.random() * videoIds.length)) % videoIds.length;
-      const randomVideoId = videoIds[videoIndex];
+      setSearchPhase('Creating video embed...');
 
       const video: MediaItem = {
-        id: randomVideoId,
+        id: bestVideo.id,
         type: 'youtube',
-        url: youtubeService.createEmbedUrl(randomVideoId, {
+        url: youtubeService.createEmbedUrl(bestVideo.id, {
           autoplay: true,
           mute: true,
           loop: true,
           controls: true,
         }),
-        title: `Random ${getModeTitle(videoMode)} Video`,
-        thumbnail: `https://i.ytimg.com/vi/${randomVideoId}/hqdefault.jpg`,
+        title: bestVideo.title,
+        thumbnail: bestVideo.thumbnailUrl,
       };
 
       setMediaItems([video]);
       lockedVideoRef.current = video;
+      setSearchPhase('');
     } catch (error) {
       console.error('Error fetching media content:', error);
+      setError({
+        type: error instanceof Error && error.message.includes('Rate limited') ? 'rate_limit' : 'network_error',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        details: error instanceof Error ? error.stack : undefined,
+        retryable: true
+      });
       setMediaItems([]);
     } finally {
       setLoading(false);
+      setSearchPhase('');
     }
-  }, [videoMode, debouncedShuffleCounter, debouncedInternalShuffleCounter, getModeTitle]);
+  }, []);
 
 
   useEffect(() => {
@@ -109,15 +107,9 @@ const MediaCollage = memo<MediaCollageProps>(({ currentTrack, shuffleCounter }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     currentTrack,
-    debouncedShuffleCounter,
-    debouncedInternalShuffleCounter,
-    videoMode,
     fetchMediaContent
   ]);
 
-  useEffect(() => {
-    setInternalShuffleCounter(0);
-  }, [currentTrack]);
 
   useEffect(() => {
     if (lockVideoToTrack && lockedVideoRef.current) {
@@ -125,10 +117,6 @@ const MediaCollage = memo<MediaCollageProps>(({ currentTrack, shuffleCounter }) 
     }
   }, [lockVideoToTrack]);
 
-  const handleModeChange = useCallback((mode: VideoMode) => {
-    setVideoMode(mode);
-    localStorage.setItem('vorbis-player-video-mode', mode);
-  }, []);
 
   const handleLockVideoToggle = useCallback(() => {
     const newLockState = !lockVideoToTrack;
@@ -136,9 +124,70 @@ const MediaCollage = memo<MediaCollageProps>(({ currentTrack, shuffleCounter }) 
     localStorage.setItem('vorbis-player-lock-video', newLockState.toString());
   }, [lockVideoToTrack]);
 
-  const handleShuffleVideo = useCallback(() => {
-    setInternalShuffleCounter(prev => prev + 1);
-  }, []);
+  const handleShuffleVideo = useCallback(async () => {
+    if (!currentTrack) return;
+    
+    setLoading(true);
+    setError(null);
+    setSearchPhase('Finding alternatives...');
+    
+    try {
+      // Find alternative videos for the same track
+      const currentVideoId = mediaItems[0]?.id;
+      const excludeIds = currentVideoId ? [currentVideoId] : [];
+      
+      const alternativeVideos = await videoSearchOrchestrator.findAlternativeVideos(currentTrack, excludeIds);
+      
+      if (alternativeVideos.length > 0) {
+        // Select a random alternative
+        const randomIndex = Math.floor(Math.random() * alternativeVideos.length);
+        const selectedVideo = alternativeVideos[randomIndex];
+        
+        const video: MediaItem = {
+          id: selectedVideo.id,
+          type: 'youtube',
+          url: youtubeService.createEmbedUrl(selectedVideo.id, {
+            autoplay: true,
+            mute: true,
+            loop: true,
+            controls: true,
+          }),
+          title: selectedVideo.title,
+          thumbnail: selectedVideo.thumbnailUrl,
+        };
+
+        setMediaItems([video]);
+        if (!lockVideoToTrack) {
+          lockedVideoRef.current = video;
+        }
+      } else {
+        console.log(`No alternative videos found for: ${currentTrack.name}`);
+        setError({
+          type: 'no_results',
+          message: 'No alternative videos found',
+          details: `Could not find alternative videos for "${currentTrack.name}"`,
+          retryable: true
+        });
+      }
+    } catch (error) {
+      console.error('Error shuffling video:', error);
+      setError({
+        type: error instanceof Error && error.message.includes('Rate limited') ? 'rate_limit' : 'network_error',
+        message: error instanceof Error ? error.message : 'Shuffle failed',
+        details: error instanceof Error ? error.stack : undefined,
+        retryable: true
+      });
+    } finally {
+      setLoading(false);
+      setSearchPhase('');
+    }
+  }, [currentTrack, mediaItems, lockVideoToTrack]);
+
+  const handleRetry = useCallback(() => {
+    if (currentTrack) {
+      fetchMediaContent(currentTrack);
+    }
+  }, [currentTrack, fetchMediaContent]);
 
   if (!currentTrack) {
     return null;
@@ -149,31 +198,18 @@ const MediaCollage = memo<MediaCollageProps>(({ currentTrack, shuffleCounter }) 
       <Card className="bg-white/5 backdrop-blur-sm border-white/10">
         <CardContent className="p-4">
           <div className="relative flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-white">
-              {getModeTitle(videoMode)}
-            </h3>
+            <div className="flex flex-col">
+              <h3 className="text-lg font-semibold text-white">
+                Now Playing
+              </h3>
+              {currentTrack && (
+                <p className="text-sm text-white/70 truncate">
+                  {currentTrack.name} · {currentTrack.artists}
+                </p>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
-              <ToggleGroup
-                type="single"
-                value={videoMode}
-                onValueChange={(value) => value && handleModeChange(value as VideoMode)}
-                className="bg-white/10 rounded-lg p-1"
-              >
-                {(['80sTV', '90sTV'] as VideoMode[]).map((mode) => (
-                  <ToggleGroupItem
-                    key={mode}
-                    value={mode}
-                    className={cn(
-                      "px-3 py-1 text-sm font-medium transition-all duration-200",
-                      "data-[state=on]:bg-white/20 data-[state=on]:text-white data-[state=on]:shadow-sm",
-                      "data-[state=off]:text-white/70 hover:text-white hover:bg-white/10"
-                    )}
-                  >
-                    {getModeEmoji(mode)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
 
               {/* Video Lock Toggle */}
               <Toggle
@@ -190,19 +226,46 @@ const MediaCollage = memo<MediaCollageProps>(({ currentTrack, shuffleCounter }) 
               </Toggle>
 
               {loading && (
-                <Skeleton className="h-5 w-5 rounded-full bg-white/20" />
+                <LoadingIndicator 
+                  variant="search" 
+                  phase={searchPhase}
+                  className="h-5 w-5"
+                />
               )}
             </div>
           </div>
 
           <div className="w-full">
+            {loading && (
+              <LoadingIndicator 
+                variant="search" 
+                message={searchPhase || "Searching for videos..."}
+                className="py-8"
+              />
+            )}
+            
+            {error && !loading && (
+              <SearchErrorDisplay 
+                error={error}
+                onRetry={handleRetry}
+                onSkip={() => setError(null)}
+              />
+            )}
+            
+            {mediaItems.length === 0 && !loading && !error && currentTrack && (
+              <FallbackVideoDisplay 
+                track={currentTrack}
+                onSearchRetry={handleRetry}
+              />
+            )}
+            
             {mediaItems.map((item) => (
               <VideoItem key={item.id} item={item} />
             ))}
           </div>
 
           {/* Shuffle Bar - Full width clickable area */}
-          {mediaItems.length > 0 && (
+          {mediaItems.length > 0 && !loading && (
             <button
               onClick={handleShuffleVideo}
               className="group w-full py-3 bg-white/5 hover:bg-white/10 border-t border-b border-white/10 transition-all duration-200 active:bg-white/15 flex justify-center items-center"
@@ -213,15 +276,9 @@ const MediaCollage = memo<MediaCollageProps>(({ currentTrack, shuffleCounter }) 
                 className="text-white text-lg font-semibold tracking-wider pointer-events-none"
                 as="span"
               >
-                {"SHUFFLE " + getModeEmoji(videoMode)}
+                SHUFFLE 🎵
               </HyperText>
             </button>
-          )}
-
-          {mediaItems.length === 0 && !loading && (
-            <div className="text-center text-white/60 py-8">
-              <p>No media content available for this track</p>
-            </div>
           )}
         </CardContent>
       </Card>
