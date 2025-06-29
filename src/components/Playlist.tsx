@@ -14,8 +14,7 @@ const PlaylistCard = styled(Card)`
   background: rgba(38, 38, 38, 0.5);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(115, 115, 115, 0.5);
-  border-radius: ${({ theme }) => theme.borderRadius.lg} ${({ theme }) => theme.borderRadius.lg} 0 0;
-  border-bottom: none;
+  border-radius: ${({ theme }) => theme.borderRadius.lg};
 `;
 
 const PlaylistHeader = styled(CardHeader)`
