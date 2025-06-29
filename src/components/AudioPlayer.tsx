@@ -417,21 +417,6 @@ const AudioPlayerComponent = () => {
   }, [tracks.length, isLoading]);
 
 
-  useEffect(() => {
-    const handlePlayerStateChange = (state: SpotifyPlaybackState | null) => {
-      if (state && state.track_window.current_track) {
-        const currentTrack = state.track_window.current_track;
-        const trackIndex = tracks.findIndex(track => track.id === currentTrack.id);
-
-        if (trackIndex !== -1 && trackIndex !== currentTrackIndex) {
-          setCurrentTrackIndex(trackIndex);
-          // setShuffleCounter(0);
-        }
-      }
-    };
-
-    spotifyPlayer.onPlayerStateChanged(handlePlayerStateChange);
-  }, [tracks, currentTrackIndex]);
 
   const playTrack = useCallback(async (index: number) => {
     if (tracks[index]) {
@@ -443,6 +428,45 @@ const AudioPlayerComponent = () => {
       }
     }
   }, [tracks]);
+
+  // Auto-play first song when tracks are loaded
+  useEffect(() => {
+    if (tracks.length > 0 && isInitialLoad) {
+      console.log('Auto-playing first track...');
+      playTrack(0);
+      setIsInitialLoad(false);
+    }
+  }, [tracks, isInitialLoad, playTrack]);
+
+  // Handle player state changes and auto-advance
+  useEffect(() => {
+    const handlePlayerStateChange = (state: SpotifyPlaybackState | null) => {
+      if (state && state.track_window.current_track) {
+        const currentTrack = state.track_window.current_track;
+        const trackIndex = tracks.findIndex(track => track.id === currentTrack.id);
+
+        if (trackIndex !== -1 && trackIndex !== currentTrackIndex) {
+          setCurrentTrackIndex(trackIndex);
+          // setShuffleCounter(0);
+        }
+
+        // Auto-advance to next song when current song ends
+        // Check if we're at the end of the track (within 1 second of duration) and paused
+        const nearEnd = state.position >= (currentTrack.duration_ms - 1000);
+        if (state.paused && nearEnd && currentTrack.duration_ms > 0) {
+          console.log('Song ended, auto-advancing to next track...');
+          setTimeout(() => {
+            const nextIndex = (currentTrackIndex + 1) % tracks.length;
+            if (tracks[nextIndex]) {
+              playTrack(nextIndex);
+            }
+          }, 500); // Small delay to ensure clean transition
+        }
+      }
+    };
+
+    spotifyPlayer.onPlayerStateChanged(handlePlayerStateChange);
+  }, [tracks, currentTrackIndex, playTrack]);
 
   const handleNext = useCallback(() => {
     if (tracks.length === 0) return;
