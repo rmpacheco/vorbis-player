@@ -37,7 +37,8 @@ const PlaylistContent = styled(CardContent)`
 `;
 
 const PlaylistScrollArea = styled(ScrollArea)`
-  max-height: 24rem;
+  height: calc(100vh - 240px);
+  min-height: 300px;
 `;
 
 const PlaylistItems = styled.div`
