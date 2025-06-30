@@ -104,7 +104,13 @@ export class SpotifyPlayerService {
 
     const token = await spotifyAuth.ensureValidToken();
     
-    await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${this.deviceId}`, {
+    console.log('🎵 Making Spotify API call to play track:', {
+      deviceId: this.deviceId,
+      uri: uri,
+      hasToken: !!token
+    });
+    
+    const response = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${this.deviceId}`, {
       method: 'PUT',
       body: JSON.stringify({ uris: [uri] }),
       headers: {
@@ -112,6 +118,18 @@ export class SpotifyPlayerService {
         'Authorization': `Bearer ${token}`
       },
     });
+    
+    console.log('🎵 Spotify API response:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🎵 Spotify API error response:', errorText);
+      throw new Error(`Spotify API error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
   }
 
   async playPlaylist(uris: string[]): Promise<void> {
@@ -170,6 +188,8 @@ export class SpotifyPlayerService {
 
   onPlayerStateChanged(callback: (state: SpotifyPlaybackState | null) => void): void {
     if (this.player) {
+      // Remove any existing listeners first to prevent duplicates
+      this.player.removeListener('player_state_changed');
       this.player.addListener('player_state_changed', callback);
     }
   }

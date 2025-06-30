@@ -3,10 +3,10 @@ import styled, { keyframes } from 'styled-components';
 const Playlist = lazy(() => import('./Playlist'));
 const VideoAdmin = lazy(() => import('./admin/VideoAdmin'));
 const AdminKeyCombo = lazy(() => import('./admin/AdminKeyCombo'));
-import { getSpotifyUserPlaylists, spotifyAuth } from '../services/spotify';
+const PlaylistSelection = lazy(() => import('./PlaylistSelection'));
+import { getPlaylistTracks, spotifyAuth } from '../services/spotify';
 import { spotifyPlayer } from '../services/spotifyPlayer';
 import type { Track } from '../services/spotify';
-import { HyperText } from './hyper-text';
 import { Card, CardHeader, CardContent } from '../components/styled';
 import { Button } from '../components/styled';
 import { Skeleton } from '../components/styled';
@@ -427,98 +427,115 @@ const InfoControls = styled.div`
 const AudioPlayerComponent = () => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  // const [shuffleCounter, setShuffleCounter] = useState(0);
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  const [selectedPlaylistName, setSelectedPlaylistName] = useState<string>('');
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [accentColor, setAccentColor] = useState<string>('goldenrod');
 
-  const fetchTracks = async () => {
-    if (window.location.pathname === '/auth/spotify/callback') {
-      setIsLoading(false);
-      return;
-    }
-
-    // Check if user is authenticated first
-    if (!spotifyAuth.isAuthenticated()) {
-      setIsLoading(false);
-      setError("Redirecting to Spotify login...");
-      spotifyAuth.redirectToAuth();
-      return;
-    }
-
+  const handlePlaylistSelect = async (playlistId: string, playlistName: string) => {
     try {
       setError(null);
       setIsLoading(true);
+      setSelectedPlaylistId(playlistId);
+      setSelectedPlaylistName(playlistName);
 
+      console.log('🎵 Loading tracks from playlist:', playlistName);
+      
+      // Initialize Spotify player
       await spotifyPlayer.initialize();
 
-      const fetchedTracks = await getSpotifyUserPlaylists();
+      // Fetch tracks from the selected playlist
+      const fetchedTracks = await getPlaylistTracks(playlistId);
+      
       if (fetchedTracks.length === 0) {
-        setError("No tracks found in your Spotify account. Please add music to playlists or like some songs in Spotify, then refresh this page.");
+        setError("No tracks found in this playlist.");
+        return;
       }
 
       setTracks(fetchedTracks);
+      setCurrentTrackIndex(0);
+      
+      console.log(`🎵 Loaded ${fetchedTracks.length} tracks, starting playback...`);
+      
+      // Start playing the first track (user interaction has occurred)
+      setTimeout(async () => {
+        try {
+          await playTrack(0);
+          console.log('🎵 Playback started successfully after playlist selection!');
+        } catch (error) {
+          console.error('🎵 Failed to start playback:', error);
+        }
+      }, 1000);
 
-      if (fetchedTracks.length > 0) {
-        setCurrentTrackIndex(0);
-      }
     } catch (err: unknown) {
-      console.error('Failed to initialize Spotify player:', err);
+      console.error('Failed to load playlist tracks:', err);
       if (err instanceof Error && err.message.includes('authenticated')) {
-        setError("Redirecting to Spotify login...");
+        setError("Authentication expired. Redirecting to Spotify login...");
         spotifyAuth.redirectToAuth();
       } else {
-        setError(err instanceof Error ? err.message : "An unknown error occurred while fetching tracks.");
+        setError(err instanceof Error ? err.message : "An unknown error occurred while loading tracks.");
       }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Handle Spotify auth redirect when component mounts
   useEffect(() => {
-    fetchTracks();
-  }, []);
-
-  useEffect(() => {
-    const handleFocus = () => {
-      if (window.location.pathname !== '/auth/spotify/callback' && tracks.length === 0 && !isLoading) {
-        fetchTracks();
+    const handleAuthRedirect = async () => {
+      try {
+        await spotifyAuth.handleRedirect();
+      } catch (error) {
+        console.error('Auth redirect error:', error);
+        setError(error instanceof Error ? error.message : 'Authentication failed');
       }
     };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [tracks.length, isLoading]);
+    handleAuthRedirect();
+  }, []);
 
 
 
   const playTrack = useCallback(async (index: number) => {
     if (tracks[index]) {
       try {
+        console.log('🎵 Attempting to play track:', {
+          index,
+          trackName: tracks[index].name,
+          uri: tracks[index].uri,
+          playerReady: spotifyPlayer.getIsReady(),
+          deviceId: spotifyPlayer.getDeviceId()
+        });
+        
+        // Check if we have valid authentication
+        const isAuthenticated = spotifyAuth.isAuthenticated();
+        console.log('🎵 Authentication status:', isAuthenticated);
+        
+        if (!isAuthenticated) {
+          console.error('🎵 Not authenticated with Spotify');
+          return;
+        }
+        
         await spotifyPlayer.playTrack(tracks[index].uri);
         setCurrentTrackIndex(index);
+        console.log('🎵 playTrack call completed');
+        
       } catch (error) {
-        console.error('Failed to play track:', error);
+        console.error('🎵 Failed to play track:', error);
+        console.error('🎵 Error details:', {
+          error: error.message,
+          playerReady: spotifyPlayer.getIsReady(),
+          deviceId: spotifyPlayer.getDeviceId(),
+          trackUri: tracks[index].uri
+        });
       }
     }
   }, [tracks]);
 
-  // Auto-play first song when tracks are loaded
-  useEffect(() => {
-    if (tracks.length > 0 && isInitialLoad) {
-      console.log('Auto-playing first track...');
-      // Delay auto-play slightly to ensure Spotify player is ready
-      setTimeout(() => {
-        playTrack(0);
-        setIsInitialLoad(false);
-      }, 1000);
-    }
-  }, [tracks, isInitialLoad, playTrack]);
-
-  // Handle player state changes and auto-advance
+  // Simple player state monitoring (removed complex auto-play logic)
   useEffect(() => {
     const handlePlayerStateChange = (state: SpotifyPlaybackState | null) => {
       if (state && state.track_window.current_track) {
@@ -527,25 +544,58 @@ const AudioPlayerComponent = () => {
 
         if (trackIndex !== -1 && trackIndex !== currentTrackIndex) {
           setCurrentTrackIndex(trackIndex);
-          // setShuffleCounter(0);
-        }
-
-        // Auto-advance to next song when current song ends
-        // Check if we're at the end of the track (within 1 second of duration) and paused
-        const nearEnd = state.position >= (currentTrack.duration_ms - 1000);
-        if (state.paused && nearEnd && currentTrack.duration_ms > 0) {
-          console.log('Song ended, auto-advancing to next track...');
-          setTimeout(() => {
-            const nextIndex = (currentTrackIndex + 1) % tracks.length;
-            if (tracks[nextIndex]) {
-              playTrack(nextIndex);
-            }
-          }, 500); // Small delay to ensure clean transition
         }
       }
     };
 
     spotifyPlayer.onPlayerStateChanged(handlePlayerStateChange);
+  }, [tracks, currentTrackIndex]);
+
+  // Auto-advance to next track when current track ends
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout;
+    
+    const checkForSongEnd = async () => {
+      try {
+        const state = await spotifyPlayer.getCurrentState();
+        if (state && state.track_window.current_track && tracks.length > 0) {
+          const currentTrack = state.track_window.current_track;
+          const duration = currentTrack.duration_ms;
+          const position = state.position;
+          const timeRemaining = duration - position;
+          
+          // Check if song has ended (within 1 second of completion)
+          if (duration > 0 && position > 0 && timeRemaining <= 1000) {
+            console.log('🎵 Song ending detected! Auto-advancing...', {
+              timeRemaining: timeRemaining + 'ms',
+              currentTrack: currentTrack.name
+            });
+            
+            // Auto-advance to next track
+            const nextIndex = (currentTrackIndex + 1) % tracks.length;
+            if (tracks[nextIndex]) {
+              console.log(`🎵 Playing next track: ${tracks[nextIndex].name}`);
+              setTimeout(() => {
+                playTrack(nextIndex);
+              }, 500);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking for song end:', error);
+      }
+    };
+
+    // Poll every 3 seconds to check for song endings
+    if (tracks.length > 0) {
+      pollInterval = setInterval(checkForSongEnd, 3000);
+    }
+    
+    return () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+    };
   }, [tracks, currentTrackIndex, playTrack]);
 
   const handleNext = useCallback(() => {
@@ -589,6 +639,7 @@ const AudioPlayerComponent = () => {
   }, [currentTrack?.image]);
 
   const renderContent = () => {
+    // Show loading state
     if (isLoading) {
       return (
         <LoadingCard standalone>
@@ -604,6 +655,7 @@ const AudioPlayerComponent = () => {
       );
     }
 
+    // Handle authentication errors
     if (error) {
       const isAuthError = error.includes('Redirecting to Spotify login') ||
         error.includes('No authentication token') ||
@@ -639,13 +691,23 @@ const AudioPlayerComponent = () => {
       );
     }
 
-    if (tracks.length === 0) {
+    // Show playlist selection when no playlist is selected
+    if (!selectedPlaylistId || tracks.length === 0) {
       return (
-        <Alert style={{ width: '100%' }}>
-          <AlertDescription style={{ color: 'white', textAlign: 'center' }}>
-            No tracks to play.
-          </AlertDescription>
-        </Alert>
+        <Suspense fallback={
+          <LoadingCard standalone>
+            <CardContent>
+              <SkeletonContainer>
+                <Skeleton />
+                <Skeleton />
+                <Skeleton />
+              </SkeletonContainer>
+              <p style={{ textAlign: 'center', color: 'white', marginTop: '1rem' }}>Loading playlist selection...</p>
+            </CardContent>
+          </LoadingCard>
+        }>
+          <PlaylistSelection onPlaylistSelect={handlePlaylistSelect} />
+        </Suspense>
       );
     }
 
