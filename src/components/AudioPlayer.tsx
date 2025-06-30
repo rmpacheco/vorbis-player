@@ -175,14 +175,6 @@ const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boole
   `}
 `;
 
-const SpinIcon = styled.div`
-  width: 4rem;
-  height: 4rem;
-  background-color: ${({ theme }: any) => theme.colors.primary};
-  border-radius: 50%;
-  ${flexCenter};
-  margin: 0 auto ${({ theme }: any) => theme.spacing.lg};
-`;
 
 const SkeletonContainer = styled.div`
   ${flexColumn};
@@ -518,8 +510,11 @@ const AudioPlayerComponent = () => {
   useEffect(() => {
     if (tracks.length > 0 && isInitialLoad) {
       console.log('Auto-playing first track...');
-      playTrack(0);
-      setIsInitialLoad(false);
+      // Delay auto-play slightly to ensure Spotify player is ready
+      setTimeout(() => {
+        playTrack(0);
+        setIsInitialLoad(false);
+      }, 1000);
     }
   }, [tracks, isInitialLoad, playTrack]);
 
@@ -654,29 +649,6 @@ const AudioPlayerComponent = () => {
       );
     }
 
-    if (isInitialLoad) {
-      return (
-        <LoadingCard standalone>
-          <CardContent style={{ padding: '2rem', textAlign: 'center' }}>
-            <SpinIcon>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </SpinIcon>
-            <HyperText duration={800} style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1.5rem' }} as="h2">
-              Vorbis Player
-            </HyperText>
-            <Button
-              onClick={() => setIsInitialLoad(false)}
-              style={{ width: '100%', backgroundColor: 'goldenrod', fontSize: '1.125rem', padding: '1rem' }}
-              size="lg"
-            >
-              Click to start
-            </Button>
-          </CardContent>
-        </LoadingCard>
-      );
-    }
 
     return (
       <ContentWrapper>
