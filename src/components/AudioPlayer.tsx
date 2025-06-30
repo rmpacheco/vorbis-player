@@ -446,6 +446,14 @@ const AudioPlayerComponent = () => {
       
       // Initialize Spotify player
       await spotifyPlayer.initialize();
+      
+      // Ensure our device is the active player
+      try {
+        await spotifyPlayer.transferPlaybackToDevice();
+        console.log('🎵 Ensured our device is active for playback');
+      } catch (error) {
+        console.log('🎵 Could not transfer playback, will attempt during first play:', error);
+      }
 
       // Fetch tracks from the selected playlist
       const fetchedTracks = await getPlaylistTracks(playlistId);
@@ -467,7 +475,7 @@ const AudioPlayerComponent = () => {
           await playTrack(0);
           console.log('🎵 Playback started successfully after playlist selection!');
           
-          // Check playback state after a delay
+          // Check playback state after a delay and try to recover
           setTimeout(async () => {
             const state = await spotifyPlayer.getCurrentState();
             console.log('🎵 Post-start playback check:', {
@@ -477,6 +485,44 @@ const AudioPlayerComponent = () => {
               playerReady: spotifyPlayer.getIsReady(),
               deviceId: spotifyPlayer.getDeviceId()
             });
+            
+            // If state is undefined, the player might not be active - try to activate it
+            if (!state || !state.track_window?.current_track) {
+              console.log('🎵 No player state detected, attempting to transfer playback to our device...');
+              try {
+                const token = await spotifyAuth.ensureValidToken();
+                const deviceId = spotifyPlayer.getDeviceId();
+                
+                if (deviceId) {
+                  // Transfer playback to our device
+                  await fetch('https://api.spotify.com/v1/me/player', {
+                    method: 'PUT',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      device_ids: [deviceId],
+                      play: true
+                    })
+                  });
+                  
+                  console.log('🎵 Transferred playback to our device');
+                  
+                  // Try playing the track again
+                  setTimeout(async () => {
+                    try {
+                      await playTrack(0);
+                      console.log('🎵 Retried playback after device transfer');
+                    } catch (error) {
+                      console.error('🎵 Failed to retry playback:', error);
+                    }
+                  }, 1000);
+                }
+              } catch (error) {
+                console.error('🎵 Failed to transfer playback:', error);
+              }
+            }
           }, 2000);
         } catch (error) {
           console.error('🎵 Failed to start playback:', error);

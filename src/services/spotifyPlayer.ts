@@ -68,6 +68,7 @@ export class SpotifyPlayerService {
     });
 
     this.player.addListener('ready', ({ device_id }: { device_id: string }) => {
+      console.log('🎵 Spotify player ready with device ID:', device_id);
       this.deviceId = device_id;
       this.isReady = true;
     });
@@ -209,6 +210,38 @@ export class SpotifyPlayerService {
 
   getIsReady(): boolean {
     return this.isReady;
+  }
+
+  async transferPlaybackToDevice(): Promise<void> {
+    if (!this.deviceId || !this.isReady) {
+      throw new Error('Device not ready for playback transfer');
+    }
+
+    const token = await spotifyAuth.ensureValidToken();
+    
+    try {
+      const response = await fetch('https://api.spotify.com/v1/me/player', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          device_ids: [this.deviceId],
+          play: false
+        })
+      });
+
+      if (!response.ok && response.status !== 204) {
+        const errorText = await response.text();
+        console.warn('Transfer playback response:', response.status, errorText);
+      } else {
+        console.log('🎵 Successfully transferred playback to device');
+      }
+    } catch (error) {
+      console.error('🎵 Failed to transfer playback to device:', error);
+      throw error;
+    }
   }
 }
 
