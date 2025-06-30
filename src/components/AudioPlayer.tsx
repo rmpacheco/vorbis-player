@@ -463,12 +463,25 @@ const AudioPlayerComponent = () => {
       // Start playing the first track (user interaction has occurred)
       setTimeout(async () => {
         try {
+          console.log('🎵 Attempting to start playback after playlist selection...');
           await playTrack(0);
           console.log('🎵 Playback started successfully after playlist selection!');
+          
+          // Check playback state after a delay
+          setTimeout(async () => {
+            const state = await spotifyPlayer.getCurrentState();
+            console.log('🎵 Post-start playback check:', {
+              paused: state?.paused,
+              position: state?.position,
+              trackName: state?.track_window?.current_track?.name,
+              playerReady: spotifyPlayer.getIsReady(),
+              deviceId: spotifyPlayer.getDeviceId()
+            });
+          }, 2000);
         } catch (error) {
           console.error('🎵 Failed to start playback:', error);
         }
-      }, 1000);
+      }, 1500);
 
     } catch (err: unknown) {
       console.error('Failed to load playlist tracks:', err);
@@ -523,6 +536,20 @@ const AudioPlayerComponent = () => {
         setCurrentTrackIndex(index);
         console.log('🎵 playTrack call completed');
         
+        // Check if playback actually started after a delay
+        setTimeout(async () => {
+          const state = await spotifyPlayer.getCurrentState();
+          if (state?.paused && state.position === 0) {
+            console.log('🎵 Track appears to be paused after play call, attempting resume...');
+            try {
+              await spotifyPlayer.resume();
+              console.log('🎵 Resume attempted');
+            } catch (resumeError) {
+              console.error('🎵 Failed to resume:', resumeError);
+            }
+          }
+        }, 1000);
+        
       } catch (error) {
         console.error('🎵 Failed to play track:', error);
         console.error('🎵 Error details:', {
@@ -554,6 +581,7 @@ const AudioPlayerComponent = () => {
   // Auto-advance to next track when current track ends
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
+    let hasEnded = false; // Prevent multiple triggers
     
     const checkForSongEnd = async () => {
       try {
@@ -564,12 +592,30 @@ const AudioPlayerComponent = () => {
           const position = state.position;
           const timeRemaining = duration - position;
           
-          // Check if song has ended (within 1 second of completion)
-          if (duration > 0 && position > 0 && timeRemaining <= 1000) {
+          // Log current state periodically for debugging
+          if (Math.random() < 0.2) { // Log 20% of the time
+            console.log('🎵 Playback state:', {
+              trackName: currentTrack.name,
+              position: Math.round(position / 1000) + 's',
+              duration: Math.round(duration / 1000) + 's',
+              timeRemaining: Math.round(timeRemaining / 1000) + 's',
+              paused: state.paused
+            });
+          }
+          
+          // Check if song has ended (within 2 seconds of completion OR position at end)
+          if (!hasEnded && duration > 0 && position > 0 && (
+            timeRemaining <= 2000 || // Within 2 seconds of end
+            position >= duration - 1000 // Within 1 second of end
+          )) {
             console.log('🎵 Song ending detected! Auto-advancing...', {
               timeRemaining: timeRemaining + 'ms',
+              position: position + 'ms',
+              duration: duration + 'ms',
               currentTrack: currentTrack.name
             });
+            
+            hasEnded = true; // Prevent multiple triggers
             
             // Auto-advance to next track
             const nextIndex = (currentTrackIndex + 1) % tracks.length;
@@ -577,6 +623,7 @@ const AudioPlayerComponent = () => {
               console.log(`🎵 Playing next track: ${tracks[nextIndex].name}`);
               setTimeout(() => {
                 playTrack(nextIndex);
+                hasEnded = false; // Reset for next track
               }, 500);
             }
           }
@@ -586,9 +633,9 @@ const AudioPlayerComponent = () => {
       }
     };
 
-    // Poll every 3 seconds to check for song endings
+    // Poll every 2 seconds to check for song endings (more frequent)
     if (tracks.length > 0) {
-      pollInterval = setInterval(checkForSongEnd, 3000);
+      pollInterval = setInterval(checkForSongEnd, 2000);
     }
     
     return () => {
