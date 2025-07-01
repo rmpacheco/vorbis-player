@@ -79,7 +79,7 @@ class YouTubeService {
 
     try {
       // Use the embed-test endpoint for more accurate detection
-      const proxyUrl = `http://127.0.0.1:3001/youtube/embed-test/${videoId}`;
+      const proxyUrl = `/api/youtube/embed-test/${videoId}`;
       const response = await fetch(proxyUrl);
       
       if (!response.ok) {

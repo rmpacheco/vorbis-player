@@ -30,7 +30,7 @@ interface CacheEntry {
 
 export class YouTubeSearchService {
   private readonly SEARCH_BASE_URL = 'https://www.youtube.com/results';
-  private readonly LOCAL_PROXY_URL = 'http://127.0.0.1:3001/youtube/search';
+  private readonly LOCAL_PROXY_URL = '/api/youtube/search';
   private readonly REQUEST_DELAY = 1000; // Rate limiting
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   
@@ -96,9 +96,9 @@ export class YouTubeSearchService {
 
   private async fetchSearchPage(query: string): Promise<string> {
     const encodedQuery = encodeURIComponent(query);
-    // First, try the local proxy server
+    // Use the serverless function for YouTube search
     try {
-      console.log('🔄 Attempting YouTube search via local proxy server...');
+      console.log('🔄 Attempting YouTube search via serverless function...');
       const localProxyUrl = `${this.LOCAL_PROXY_URL}?q=${encodedQuery}`;
       const response = await fetch(localProxyUrl, {
         method: 'GET',
@@ -110,19 +110,19 @@ export class YouTubeSearchService {
       if (response.ok) {
         const html = await response.text();
         if (html && html.length > 0) {
-          console.log('✅ Local proxy succeeded');
+          console.log('✅ Serverless function succeeded');
           return html;
         }
-        console.log('⚠️ Local proxy returned empty response');
+        console.log('⚠️ Serverless function returned empty response');
       } else {
-        console.log(`⚠️ Local proxy failed with status: ${response.status}`);
+        console.log(`⚠️ Serverless function failed with status: ${response.status}`);
       }
     } catch (error) {
-      console.log('⚠️ Local proxy unavailable:', error instanceof Error ? error.message : 'Unknown error');
-      console.log('💡 Make sure to start the proxy server: cd proxy-server && npm install && npm start');
+      console.log('⚠️ Serverless function unavailable:', error instanceof Error ? error.message : 'Unknown error');
+      console.log('💡 Make sure the serverless functions are deployed or use `vercel dev` for local development');
     }
     // No fallback to external proxies
-    throw new Error('❌ Local proxy failed. Please start the local proxy server or check your internet connection.');
+    throw new Error('❌ Serverless function failed. Please check your internet connection or deploy the serverless functions.');
   }
 
   extractVideoIds(html: string): string[] {
