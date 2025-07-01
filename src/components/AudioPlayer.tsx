@@ -23,7 +23,7 @@ const Container = styled.div`
   padding: ${({ theme }: any) => theme.spacing.sm};
   
   @media (min-width: ${({ theme }: any) => theme.breakpoints.sm}) {
-    padding: ${({ theme }: any) => theme.spacing.md};
+    padding: ${({ theme }: any) => theme.spacing.sm};
   }
 `;
 
@@ -35,10 +35,10 @@ const ContentWrapper = styled.div`
   padding-right: 1rem;
   box-sizing: border-box;
   
-  @media (min-width: ${({ theme }: any) => theme.breakpoints.lg}) {
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.sm}) {
     max-width: 60rem;
   }
-  @media (min-width: ${({ theme }: any) => theme.breakpoints.xl}) {
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.md}) {
     max-width: 72rem;
   }
 `;
@@ -190,7 +190,7 @@ const spin = keyframes`
 `;
 
 const VideoPlayerContainer = styled.div`
-  margin: ${({ theme }: any) => theme.spacing.md} ${({ theme }: any) => theme.spacing.md} ${({ theme }: any) => theme.spacing.lg} ${({ theme }: any) => theme.spacing.md};
+  margin: ${({ theme }: any) => theme.spacing.sm} ;
   
   /* Handle empty state when no embeddable videos */
   &:empty {
@@ -582,10 +582,10 @@ const AudioPlayerComponent = () => {
 
     return (
       <ContentWrapper>
-        <div style={{ marginTop: '1.5rem' }}>
+        <div style={{ marginTop: '0.5rem' }}>
           <LoadingCard backgroundImage={currentTrack?.image}>
 
-            <CardContent style={{ padding: '0.5rem', position: 'relative', zIndex: 2 }}>
+            <CardContent style={{ position: 'relative', zIndex: 2 }}>
               <VideoPlayerContainer>
                 <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
                   <VideoPlayer key={videoRefreshKey} currentTrack={currentTrack} showVideo={showVideo} />
