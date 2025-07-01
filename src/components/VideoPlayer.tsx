@@ -85,12 +85,14 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
   const [searchPhase, setSearchPhase] = useState<string>('');
   const [error, setError] = useState<SearchError | null>(null);
   const [noEmbeddableVideos, setNoEmbeddableVideos] = useState(false);
+  const [iframeLoadError, setIframeLoadError] = useState(false);
 
   const fetchVideoForTrack = useCallback(async (track: Track) => {
     if (!track) return;
     setLoading(true);
     setError(null);
     setNoEmbeddableVideos(false);
+    setIframeLoadError(false);
     setSearchPhase('Checking saved videos...');
     
     try {
@@ -118,17 +120,32 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
       // If no saved association, fall back to search
       setSearchPhase('Searching YouTube...');
       const blacklistedArray = Array.from(globalVideoBlacklist);
-      const searchResults = await videoSearchOrchestrator.findAlternativeVideos(track, blacklistedArray);
-      const bestVideo = searchResults.length > 0 ? searchResults[0] : null;
+      const searchResult = await videoSearchOrchestrator.findAlternativeVideosWithMetadata(track, blacklistedArray);
+      const bestVideo = searchResult.videos.length > 0 ? searchResult.videos[0] : null;
+      
+      // Check if all videos were filtered due to embedding restrictions
+      if (searchResult.allFilteredDueToEmbedding && searchResult.videos.length === 0) {
+        console.log(`All videos filtered due to embedding restrictions for "${track.name}" by ${track.artists}`);
+        setNoEmbeddableVideos(true);
+        setMediaItems([]);
+        setSearchPhase('');
+        return;
+      }
       
       if (!bestVideo) {
         console.log(`No videos found for "${track.name}" by ${track.artists}`);
-        setError({
-          type: 'no_results',
-          message: 'No videos found for this track',
-          details: `Could not find any suitable videos for "${track.name}" by ${track.artists}`,
-          retryable: true
-        });
+        // Check if we should show embedding error instead of generic no results
+        if (searchResult.allFilteredDueToEmbedding) {
+          console.log(`Setting noEmbeddableVideos for "${track.name}" - all results filtered due to embedding`);
+          setNoEmbeddableVideos(true);
+        } else {
+          setError({
+            type: 'no_results',
+            message: 'No videos found for this track',
+            details: `Could not find any suitable videos for "${track.name}" by ${track.artists}`,
+            retryable: true
+          });
+        }
         setMediaItems([]);
         return;
       }
@@ -146,6 +163,7 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
       }]);
       setSearchPhase('');
     } catch (error) {
+      console.error('Error in fetchVideoForTrack:', error);
       setError({
         type: error instanceof Error && error.message.includes('Rate limited') ? 'rate_limit' : 'network_error',
         message: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -153,6 +171,8 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
         retryable: true
       });
       setMediaItems([]);
+      setNoEmbeddableVideos(false); // Reset embedding state on error
+      setIframeLoadError(false); // Reset iframe error state on error
     } finally {
       setLoading(false);
       setSearchPhase('');
@@ -168,10 +188,24 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
 
   if (!currentTrack) return null;
 
-  // Hide the entire video player if no embeddable videos are available for this track
-  if (noEmbeddableVideos && !loading) {
-    console.log(`VideoPlayer: Hiding player for "${currentTrack.name}" - no embeddable videos available`);
-    return null;
+  // Show placeholder when no embeddable videos are available or iframe failed to load
+  if ((noEmbeddableVideos || iframeLoadError) && !loading) {
+    const reason = noEmbeddableVideos ? 'no embeddable videos available' : 'video failed to load';
+    console.log(`VideoPlayer: Showing placeholder for "${currentTrack.name}" - ${reason}`);
+    return (
+      <Container>
+        <AspectRatio ratio={16 / 9} className="w-full mb-4">
+          <VideoContainer style={{ 
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
+            backdropFilter: 'none'
+          }}>
+            {/* Empty placeholder to maintain aspect ratio and allow album art to show through */}
+          </VideoContainer>
+        </AspectRatio>
+      </Container>
+    );
   }
 
   const currentVideoItem = mediaItems.length > 0 ? mediaItems[0] : null;
@@ -185,14 +219,14 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
           className="py-8"
         />
       )}
-      {error && !loading && !noEmbeddableVideos && (
+      {error && !loading && !noEmbeddableVideos && !iframeLoadError && (
         <SearchErrorDisplay 
           error={error}
           onRetry={() => fetchVideoForTrack(currentTrack)}
           onSkip={() => setError(null)}
         />
       )}
-      {mediaItems.length === 0 && !loading && !error && currentTrack && !noEmbeddableVideos && (
+      {mediaItems.length === 0 && !loading && !error && currentTrack && !noEmbeddableVideos && !iframeLoadError && (
         <FallbackVideoDisplay 
           track={currentTrack}
           onSearchRetry={() => fetchVideoForTrack(currentTrack)}
@@ -212,6 +246,16 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack }) => {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 loading="lazy"
+                onError={() => {
+                  // Add current video to blacklist when iframe fails to load
+                  console.log(`Video ${currentVideoItem.id} failed to embed, adding to blacklist and hiding video player`);
+                  globalVideoBlacklist.add(currentVideoItem.id);
+                  saveBlacklist(globalVideoBlacklist);
+                  // Set iframe load error to hide video player
+                  setIframeLoadError(true);
+                  // Clear current media items to prevent showing broken video
+                  setMediaItems([]);
+                }}
               />
             ) : (
               <StyledImage

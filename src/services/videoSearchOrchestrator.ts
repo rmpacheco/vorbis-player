@@ -4,7 +4,7 @@ import { contentFilterService, type FilteredVideoResult } from './contentFilter'
 import { youtubeService } from './youtube';
 import type { Track } from './spotify';
 
-export interface VideoSearchResult {
+export interface VideoSearchWithMetadata {
   videos: FilteredVideoResult[];
   allFilteredDueToEmbedding?: boolean;
 }
@@ -12,7 +12,7 @@ export interface VideoSearchResult {
 export interface VideoSearchOrchestrator {
   findBestVideo(track: Track): Promise<FilteredVideoResult | null>;
   findAlternativeVideos(track: Track, exclude?: string[]): Promise<FilteredVideoResult[]>;
-  findAlternativeVideosWithMetadata(track: Track, exclude?: string[]): Promise<VideoSearchResult>;
+  findAlternativeVideosWithMetadata(track: Track, exclude?: string[]): Promise<VideoSearchWithMetadata>;
   getVideoQuality(videoId: string): Promise<any>;
   clearCache(): void;
 }
@@ -96,7 +96,7 @@ class VideoSearchOrchestratorImpl implements VideoSearchOrchestrator {
     return result.videos;
   }
 
-  async findAlternativeVideosWithMetadata(track: Track, exclude: string[] = []): Promise<VideoSearchResult> {
+  async findAlternativeVideosWithMetadata(track: Track, exclude: string[] = []): Promise<VideoSearchWithMetadata> {
     if (!track || !track.name) {
       return { videos: [] };
     }
