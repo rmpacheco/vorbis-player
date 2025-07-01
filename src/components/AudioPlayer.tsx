@@ -327,6 +327,30 @@ const VolumeButton = styled.button`
   }
 `;
 
+const VideoToggleButton = styled.button<{ isActive: boolean }>`
+  border: none;
+  background: transparent;
+  color: ${({ theme, isActive }: any) => isActive ? theme.colors.white : theme.colors.gray[400]};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(115, 115, 115, 0.2);
+    color: ${({ theme }: any) => theme.colors.white};
+  }
+  
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: currentColor;
+  }
+`;
+
 const TimelineContainer = styled.div`
   display: flex;
   align-items: center;
@@ -412,6 +436,7 @@ const AudioPlayerComponent = () => {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
   const [videoRefreshKey, setVideoRefreshKey] = useState(0);
   const [accentColor, setAccentColor] = useState<string>('goldenrod');
 
@@ -790,11 +815,13 @@ const AudioPlayerComponent = () => {
           <LoadingCard backgroundImage={currentTrack?.image}>
 
             <CardContent style={{ padding: '0.5rem', position: 'relative', zIndex: 2 }}>
-              <VideoPlayerContainer>
-                <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
-                  <VideoPlayer key={videoRefreshKey} currentTrack={currentTrack} />
-                </Suspense>
-              </VideoPlayerContainer>
+              {showVideo && (
+                <VideoPlayerContainer>
+                  <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
+                    <VideoPlayer key={videoRefreshKey} currentTrack={currentTrack} />
+                  </Suspense>
+                </VideoPlayerContainer>
+              )}
 
               <SpotifyPlayerControls
                 currentTrack={currentTrack}
@@ -806,6 +833,8 @@ const AudioPlayerComponent = () => {
                 onShowPlaylist={() => setShowPlaylist(true)}
                 onShowSettings={() => setShowSettings(true)}
                 trackCount={tracks.length}
+                showVideo={showVideo}
+                onToggleVideo={() => setShowVideo(v => !v)}
               />
             </CardContent>
           </LoadingCard>
@@ -884,7 +913,9 @@ const SpotifyPlayerControls = memo<{
   onShowPlaylist: () => void;
   onShowSettings: () => void;
   trackCount: number;
-}>(({ currentTrack, accentColor, onPlay, onPause, onNext, onPrevious, onShowPlaylist, onShowSettings }) => {
+  showVideo: boolean;
+  onToggleVideo: () => void;
+}>(({ currentTrack, accentColor, onPlay, onPause, onNext, onPrevious, onShowPlaylist, onShowSettings, showVideo, onToggleVideo }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(50);
@@ -1074,6 +1105,19 @@ const SpotifyPlayerControls = memo<{
               </svg>
             )}
           </VolumeButton>
+
+          {/* Video Toggle */}
+          <VideoToggleButton isActive={showVideo} onClick={onToggleVideo}>
+            {showVideo ? (
+              <svg viewBox="0 0 24 24">
+                <path d="M17 10.5V7C17 6.45 16.55 6 16 6H4C3.45 6 3 6.45 3 7V17C3 17.55 3.45 18 4 18H16C16.55 18 17 17.55 17 17V13.5L21 17.5V6.5L17 10.5Z" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24">
+                <path d="M21 6.5L17 10.5V7C17 6.45 16.55 6 16 6H4C3.45 6 3 6.45 3 7V17C3 17.55 3.45 18 4 18H16C16.55 18 17 17.55 17 17V13.5L21 17.5V6.5M16 16H4V8H16V16M2.41 2.13L1 3.54L4.86 7.4C4.33 7.69 4 8.31 4 9V15C4 16.1 4.9 17 6 17H12C12.69 17 13.31 16.67 13.6 16.14L22.46 25L23.87 23.59L2.41 2.13Z" />
+              </svg>
+            )}
+          </VideoToggleButton>
         </ControlsRow>
       </TrackInfoRow>
 
