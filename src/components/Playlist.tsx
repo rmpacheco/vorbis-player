@@ -133,6 +133,8 @@ interface PlaylistProps {
   currentTrackIndex: number;
   accentColor: string;
   onTrackSelect: (index: number) => void;
+  isShuffled?: boolean;
+  shuffledIndices?: number[];
 }
 
 interface PlaylistItemProps {
@@ -195,22 +197,21 @@ const PlaylistItem = memo<PlaylistItemProps>(({
   );
 });
 
-const Playlist = memo<PlaylistProps>(({ tracks, currentTrackIndex, accentColor, onTrackSelect }) => {
-  const sortedTracks = useMemo(() => tracks, [tracks]);
+const Playlist = memo<PlaylistProps>(({ tracks, currentTrackIndex, accentColor, onTrackSelect, isShuffled = false, shuffledIndices = [] }) => {
+  const sortedTracks = useMemo(() => {
+    if (isShuffled && shuffledIndices.length > 0) {
+      return shuffledIndices.map(index => tracks[index]).filter(Boolean);
+    }
+    return tracks;
+  }, [tracks, isShuffled, shuffledIndices]);
   
-  const currentTrack = tracks[currentTrackIndex];
   const sortedCurrentTrackIndex = useMemo(() => {
-    if (!currentTrack) return -1;
-    return sortedTracks.findIndex((track: Track) => track === currentTrack);
-  }, [sortedTracks, currentTrack]);
+    return currentTrackIndex;
+  }, [currentTrackIndex]);
 
   const handleTrackSelect = useCallback((sortedIndex: number) => {
-    const selectedTrack = sortedTracks[sortedIndex];
-    const originalIndex = tracks.findIndex((track: Track) => track === selectedTrack);
-    if (originalIndex !== -1) {
-      onTrackSelect(originalIndex);
-    }
-  }, [sortedTracks, tracks, onTrackSelect]);
+    onTrackSelect(sortedIndex);
+  }, [onTrackSelect]);
 
   return (
     <PlaylistContainer>

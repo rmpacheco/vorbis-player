@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, memo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import styled, { keyframes } from 'styled-components';
 const Playlist = lazy(() => import('./Playlist'));
 const PlaylistSelection = lazy(() => import('./PlaylistSelection'));
@@ -12,7 +12,7 @@ import { Skeleton } from '../components/styled';
 import { Alert, AlertDescription } from '../components/styled';
 import { flexCenter, flexColumn, cardBase } from '../styles/utils';
 import VideoPlayer from './VideoPlayer';
-import { extractDominantColor, getTransparentVariant } from '../utils/colorExtractor';
+import { extractDominantColor } from '../utils/colorExtractor';
 import SpotifyPlayerControls from './SpotifyPlayerControls';
 
 // Styled components
@@ -182,14 +182,6 @@ const PlaylistFallbackCard = styled.div`
   border: 1px solid ${({ theme }: any) => theme.colors.gray[700]};
 `;
 
-const spin = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
 
 const VideoPlayerContainer = styled.div`
   margin: ${({ theme }: any) => theme.spacing.sm} ;
@@ -212,6 +204,8 @@ const AudioPlayerComponent = () => {
   const [videoRefreshKey, setVideoRefreshKey] = useState(0);
   const [accentColor, setAccentColor] = useState<string>('goldenrod');
   const [showVideo, setShowVideo] = useState(false);
+  const [isShuffled, setIsShuffled] = useState(false);
+  const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
 
   const handlePlaylistSelect = async (playlistId: string, playlistName: string) => {
     try {
@@ -390,16 +384,19 @@ const AudioPlayerComponent = () => {
     const handlePlayerStateChange = (state: SpotifyPlaybackState | null) => {
       if (state && state.track_window.current_track) {
         const currentTrack = state.track_window.current_track;
-        const trackIndex = tracks.findIndex(track => track.id === currentTrack.id);
+        const actualTrackIndex = tracks.findIndex(track => track.id === currentTrack.id);
 
-        if (trackIndex !== -1 && trackIndex !== currentTrackIndex) {
-          setCurrentTrackIndex(trackIndex);
+        if (actualTrackIndex !== -1) {
+          const playlistIndex = isShuffled ? getPlaylistIndex(actualTrackIndex) : actualTrackIndex;
+          if (playlistIndex !== -1 && playlistIndex !== currentTrackIndex) {
+            setCurrentTrackIndex(playlistIndex);
+          }
         }
       }
     };
 
     spotifyPlayer.onPlayerStateChanged(handlePlayerStateChange);
-  }, [tracks, currentTrackIndex]);
+  }, [tracks, currentTrackIndex, isShuffled, getPlaylistIndex]);
 
   // Auto-advance to next track when current track ends
   useEffect(() => {
@@ -441,11 +438,13 @@ const AudioPlayerComponent = () => {
             hasEnded = true; // Prevent multiple triggers
 
             // Auto-advance to next track
-            const nextIndex = (currentTrackIndex + 1) % tracks.length;
-            if (tracks[nextIndex]) {
-              console.log(`🎵 Playing next track: ${tracks[nextIndex].name}`);
+            const nextPlaylistIndex = (currentTrackIndex + 1) % tracks.length;
+            const nextActualIndex = isShuffled ? getActualTrackIndex(nextPlaylistIndex) : nextPlaylistIndex;
+            if (tracks[nextActualIndex]) {
+              console.log(`🎵 Playing next track: ${tracks[nextActualIndex].name}`);
               setTimeout(() => {
-                playTrack(nextIndex);
+                playTrack(nextActualIndex);
+                setCurrentTrackIndex(nextPlaylistIndex);
                 hasEnded = false; // Reset for next track
               }, 500);
             }
@@ -466,24 +465,84 @@ const AudioPlayerComponent = () => {
         clearInterval(pollInterval);
       }
     };
-  }, [tracks, currentTrackIndex, playTrack]);
+  }, [tracks, currentTrackIndex, playTrack, isShuffled, shuffledIndices]);
 
   const handleNext = useCallback(() => {
     if (tracks.length === 0) return;
     const nextIndex = (currentTrackIndex + 1) % tracks.length;
-    playTrack(nextIndex);
-    // setShuffleCounter(0);
-  }, [currentTrackIndex, tracks.length, playTrack]);
+    const actualIndex = isShuffled ? getActualTrackIndex(nextIndex) : nextIndex;
+    playTrack(actualIndex);
+    setCurrentTrackIndex(nextIndex);
+  }, [currentTrackIndex, tracks.length, playTrack, isShuffled, getActualTrackIndex]);
 
   const handlePrevious = useCallback(() => {
     if (tracks.length === 0) return;
     const prevIndex = currentTrackIndex === 0 ? tracks.length - 1 : currentTrackIndex - 1;
-    playTrack(prevIndex);
-    // setShuffleCounter(0);
-  }, [currentTrackIndex, tracks.length, playTrack]);
+    const actualIndex = isShuffled ? getActualTrackIndex(prevIndex) : prevIndex;
+    playTrack(actualIndex);
+    setCurrentTrackIndex(prevIndex);
+  }, [currentTrackIndex, tracks.length, playTrack, isShuffled, getActualTrackIndex]);
+
+  // Shuffle utility function
+  const shuffleArray = useCallback((array: number[]) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  }, []);
+
+  // Generate shuffled indices when tracks change
+  useEffect(() => {
+    if (tracks.length > 0) {
+      const indices = Array.from({ length: tracks.length }, (_, i) => i);
+      setShuffledIndices(indices);
+    }
+  }, [tracks.length]);
+
+  // Handle shuffle mode changes
+  useEffect(() => {
+    if (tracks.length > 0 && isShuffled) {
+      const indices = Array.from({ length: tracks.length }, (_, i) => i);
+      const shuffled = shuffleArray(indices);
+      // Move current track to position 0 in shuffle order
+      const currentActualIndex = shuffledIndices[currentTrackIndex] || currentTrackIndex;
+      const shuffledCurrentIndex = shuffled.indexOf(currentActualIndex);
+      if (shuffledCurrentIndex > 0) {
+        [shuffled[0], shuffled[shuffledCurrentIndex]] = [shuffled[shuffledCurrentIndex], shuffled[0]];
+      }
+      setShuffledIndices(shuffled);
+      setCurrentTrackIndex(0); // Reset to first position in shuffled order
+    } else if (tracks.length > 0 && !isShuffled) {
+      // When turning off shuffle, find the current track's original position
+      const currentActualIndex = shuffledIndices[currentTrackIndex] || currentTrackIndex;
+      const indices = Array.from({ length: tracks.length }, (_, i) => i);
+      setShuffledIndices(indices);
+      setCurrentTrackIndex(currentActualIndex);
+    }
+  }, [isShuffled, tracks.length, shuffleArray, currentTrackIndex, shuffledIndices]);
+
+  // Handle shuffle toggle
+  const handleShuffleToggle = useCallback(() => {
+    setIsShuffled(prev => !prev);
+  }, []);
+
+  // Get the actual track index in the original array
+  const getActualTrackIndex = useCallback((playlistIndex: number) => {
+    return shuffledIndices[playlistIndex] || 0;
+  }, [shuffledIndices]);
+
+  // Get the playlist index from the actual track index
+  const getPlaylistIndex = useCallback((actualIndex: number) => {
+    return shuffledIndices.indexOf(actualIndex);
+  }, [shuffledIndices]);
 
   // Memoize the current track to prevent unnecessary re-renders
-  const currentTrack = useMemo(() => tracks[currentTrackIndex] || null, [tracks, currentTrackIndex]);
+  const currentTrack = useMemo(() => {
+    const actualIndex = isShuffled ? getActualTrackIndex(currentTrackIndex) : currentTrackIndex;
+    return tracks[actualIndex] || null;
+  }, [tracks, currentTrackIndex, isShuffled, getActualTrackIndex]);
 
   // Extract dominant color from album art when track changes
   useEffect(() => {
@@ -605,6 +664,8 @@ const AudioPlayerComponent = () => {
                 trackCount={tracks.length}
                 showVideo={showVideo}
                 onToggleVideo={() => setShowVideo(v => !v)}
+                isShuffled={isShuffled}
+                onToggleShuffle={handleShuffleToggle}
               />
             </CardContent>
           </LoadingCard>
@@ -626,8 +687,12 @@ const AudioPlayerComponent = () => {
                 tracks={tracks}
                 currentTrackIndex={currentTrackIndex}
                 accentColor={accentColor}
+                isShuffled={isShuffled}
+                shuffledIndices={shuffledIndices}
                 onTrackSelect={(index) => {
-                  playTrack(index);
+                  const actualIndex = isShuffled ? shuffledIndices[index] : index;
+                  playTrack(actualIndex);
+                  setCurrentTrackIndex(index);
                   setShowPlaylist(false); // Close drawer after selecting track
                 }}
               />

@@ -4,6 +4,7 @@ import { spotifyPlayer } from '../services/spotifyPlayer';
 import { spotifyAuth, checkTrackSaved, saveTrack, unsaveTrack } from '../services/spotify';
 import type { Track } from '../services/spotify';
 import LikeButton from './LikeButton';
+import ShuffleIcon from './ShuffleIcon';
 // ... existing code ...
 // Copy all styled components and the SpotifyPlayerControls component from AudioPlayer.tsx here
 // ... existing code ... 
@@ -232,7 +233,9 @@ const SpotifyPlayerControls = memo<{
   trackCount: number;
   showVideo: boolean;
   onToggleVideo: () => void;
-}>(({ currentTrack, accentColor, onPlay, onPause, onNext, onPrevious, onShowPlaylist, onShowSettings, showVideo, onToggleVideo }) => {
+  isShuffled: boolean;
+  onToggleShuffle: () => void;
+}>(({ currentTrack, accentColor, onPlay, onPause, onNext, onPrevious, onShowPlaylist, onShowSettings, showVideo, onToggleVideo, isShuffled, onToggleShuffle }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(50);
@@ -430,6 +433,11 @@ const SpotifyPlayerControls = memo<{
               isLoading={isLikePending}
               accentColor={accentColor}
               onToggleLike={handleLikeToggle}
+            />
+
+            <ShuffleIcon
+              isActive={isShuffled}
+              onClick={onToggleShuffle}
             />
 
             <ControlButton accentColor={accentColor} onClick={onShowPlaylist}>
