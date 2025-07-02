@@ -130,14 +130,14 @@ const CloseButton = styled.button`
 const HeaderArea = styled.div`
   position: relative;
   z-index: 3;
-  padding: 1rem 1rem 0 1rem;
+  padding: 0rem 1rem 0 1rem;
   display: flex;
   justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
   
   @media (max-width: 480px) {
-    padding: 0.75rem 0.75rem 0 0.75rem;
+    padding: 0rem 0.75rem 0 0.75rem;
     gap: 0.375rem;
   }
 `;
@@ -177,6 +177,7 @@ const HeaderButton = styled.button<{ accentColor: string }>`
 const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boolean }>`
   ${cardBase};
   position: relative;
+  aspect-ratio: 1/1;
   overflow: hidden;
   border: 0px solid rgba(176, 27, 164, 0.5);
   border-radius: 1.25rem;
@@ -199,11 +200,25 @@ const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boole
     &::before {
       content: '';
       position: absolute;
-      inset: 0;
       background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(4px);
+
+      inset: 0;
+      left: -1.5rem;
+      right: -1.5rem;
+      top: -1.5rem;
+      bottom: -1.5rem;
+      // background-image: url(${backgroundImage});
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
       border-radius: 1.25rem;
       z-index: 1;
+      filter: blur(18px);
+      mask-image: linear-gradient(to top, black 10rem, transparent 10rem);
+      -webkit-mask-image: linear-gradient(to top, black 10rem, transparent 10rem);
+      pointer-events: none;
+      clip-path: inset(0 1.25rem);
     }
   ` : `
     background: rgba(38, 38, 38, 0.5);
@@ -655,7 +670,7 @@ const AudioPlayerComponent = () => {
               </HeaderButton>
             </HeaderArea>
 
-            <CardContent style={{ position: 'relative', zIndex: 2 }}>
+            <CardContent style={{ position: 'absolute', bottom: `0.5rem`, left: 0, right: 0, zIndex: 2 }}>
               <VideoPlayerContainer>
                 <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
                   <VideoPlayer key={videoRefreshKey} currentTrack={currentTrack} showVideo={showVideo} />

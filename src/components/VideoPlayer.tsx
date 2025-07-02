@@ -59,19 +59,6 @@ const VideoContainer = styled.div<{ isPlaceholder?: boolean }>`
   position: relative;
   border-radius: 1.25rem;
   overflow: hidden;
-  ${({ isPlaceholder }) => isPlaceholder ? `
-    background: transparent;
-    border: 0px solid rgba(11, 11, 11, 0.32);
-    box-shadow: none;
-    backdrop-filter: none;
-    z-index: 2;
-  ` : `
-    background-color: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(0.375rem);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 4px 16px rgba(0, 0, 0, 0.2);
-  `}
-  transition: all 0.3s ease;
   width: 100%;
   height: 100%;
 `;
@@ -128,13 +115,13 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack, showVideo = true }) 
 
   // State for objectPosition
   const [objectPosition, setObjectPosition] = useState(() =>
-    `center calc(50% + ${window.matchMedia(`(min-width: ${theme.breakpoints.sm})`).matches ? '3.5rem' : '5.25rem'})`
+    `center calc(50% + ${window.matchMedia(`(min-width: ${theme.breakpoints.sm})`).matches ? '4.5rem' : '5.25rem'})`
   );
 
   useEffect(() => {
     const updateObjectPosition = () => {
       setObjectPosition(
-        `center calc(50% + ${window.matchMedia(`(min-width: ${theme.breakpoints.sm})`).matches ? '3.5rem' : '5.25rem'})`
+        `center calc(50% + ${window.matchMedia(`(min-width: ${theme.breakpoints.sm})`).matches ? '4.5rem' : '5.25rem'})`
       );
     };
     window.addEventListener('resize', updateObjectPosition);
@@ -229,32 +216,32 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack, showVideo = true }) 
     <Container>
       <AspectRatio ratio={16 / 9} >
         <VideoContainer isPlaceholder={showPlaceholder}>
-          {showPlaceholder ? (
-            <PlaceholderContainer>
-              {currentTrack?.image && (
-                <img
-                  src={currentTrack.image}
-                  alt={currentTrack.name}
-                  style={{
-                    width: 'calc(100% + 1.5rem)',
-                    height: 'calc(100% + 0rem)',
-                    objectFit: 'cover',
-                    overflow: 'hidden',
-                    scale: '1.0',
-                    // top: '50%',
-                    transform: 'translate(-.75rem, 0rem)',
-                    objectPosition: objectPosition,
-                    // borderRadius: 'inherit',
-                    // display: 'block',
-                  }}
-                  loading="lazy"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = `https://via.placeholder.com/400x300/1a1a1a/ffffff?text=${encodeURIComponent(currentTrack.name || 'No Image')}`;
-                  }}
-                />
-              )}
-            </PlaceholderContainer>
+          {showPlaceholder ? (<div></div>
+            // <PlaceholderContainer>
+            //   {currentTrack?.image && (
+            //     <img
+            //       src={currentTrack.image}
+            //       alt={currentTrack.name}
+            //       style={{
+            //         width: 'calc(100% + 1.5rem)',
+            //         height: 'calc(100% + 0rem)',
+            //         objectFit: 'cover',
+            //         overflow: 'hidden',
+            //         scale: '1.0',
+            //         // top: '50%',
+            //         transform: 'translate(-.75rem, 0rem)',
+            //         objectPosition: objectPosition,
+            //         // borderRadius: 'inherit',
+            //         // display: 'block',
+            //       }}
+            //       loading="lazy"
+            //       onError={(e) => {
+            //         const target = e.target as HTMLImageElement;
+            //         target.src = `https://via.placeholder.com/400x300/1a1a1a/ffffff?text=${encodeURIComponent(currentTrack.name || 'No Image')}`;
+            //       }}
+            //     />
+            //   )}
+            // </PlaceholderContainer>
           ) : currentVideoItem ? (
             currentVideoItem.type === 'youtube' ? (
               <StyledIframe
@@ -311,11 +298,11 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack, showVideo = true }) 
             </PlaceholderContainer>
           )}
           
-          {showLoadingOverlay && (
+          {/* {showLoadingOverlay && (
             <LoadingOverlay>
               <Spinner />
             </LoadingOverlay>
-          )}
+          )} */}
           
           {showErrorOverlay && (
             <LoadingOverlay>
