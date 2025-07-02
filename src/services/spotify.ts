@@ -1,3 +1,5 @@
+import { trackDataCache } from './trackDataCache';
+
 const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
 const SPOTIFY_REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
 
@@ -337,7 +339,7 @@ export const getPlaylistTracks = async (playlistId: string): Promise<Track[]> =>
           const track = item.track;
           const albumImage = track.album?.images?.[0]?.url;
           
-          tracks.push({
+          const trackData: Track = {
             id: track.id,
             name: track.name,
             artists: track.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
@@ -346,7 +348,16 @@ export const getPlaylistTracks = async (playlistId: string): Promise<Track[]> =>
             uri: track.uri,
             preview_url: track.preview_url,
             image: albumImage
-          });
+          };
+          
+          // Cache the complete track data
+          try {
+            trackDataCache.setTrack(trackData);
+          } catch (error) {
+            console.warn('Failed to cache track data:', error);
+          }
+          
+          tracks.push(trackData);
         }
       }
       
@@ -411,7 +422,7 @@ export const getSpotifyUserPlaylists = async (): Promise<Track[]> => {
         let validTracksInPlaylist = 0;
         for (const item of (tracksData.items || [])) {
           if (item.track && item.track.id && !item.track.is_local && item.track.type === 'track') {
-            tracks.push({
+            const trackData: Track = {
               id: item.track.id,
               name: item.track.name || 'Unknown Track',
               artists: (item.track.artists || []).map((a: { name: string }) => a.name).join(', ') || 'Unknown Artist',
@@ -420,7 +431,16 @@ export const getSpotifyUserPlaylists = async (): Promise<Track[]> => {
               uri: item.track.uri,
               preview_url: item.track.preview_url,
               image: item.track.album?.images?.[0]?.url,
-            });
+            };
+            
+            // Cache the complete track data
+            try {
+              trackDataCache.setTrack(trackData);
+            } catch (error) {
+              console.warn('Failed to cache track data:', error);
+            }
+            
+            tracks.push(trackData);
             validTracksInPlaylist++;
           } else {
             console.debug(`Skipped item in "${playlist.name}":`, {
@@ -456,7 +476,7 @@ export const getSpotifyUserPlaylists = async (): Promise<Track[]> => {
         
         for (const item of (likedData.items || [])) {
           if (item.track && item.track.id && !item.track.is_local && item.track.type === 'track') {
-            tracks.push({
+            const trackData: Track = {
               id: item.track.id,
               name: item.track.name || 'Unknown Track',
               artists: (item.track.artists || []).map((a: { name: string }) => a.name).join(', ') || 'Unknown Artist',
@@ -465,7 +485,17 @@ export const getSpotifyUserPlaylists = async (): Promise<Track[]> => {
               uri: item.track.uri,
               preview_url: item.track.preview_url,
               image: item.track.album?.images?.[0]?.url,
-            });
+            };
+            
+            // Cache the complete track data with like status = true
+            try {
+              trackDataCache.setTrack(trackData);
+              trackDataCache.setLikeStatus(trackData.id, true);
+            } catch (error) {
+              console.warn('Failed to cache track data:', error);
+            }
+            
+            tracks.push(trackData);
           }
         }
         console.log(`✓ Added ${tracks.length} tracks from liked songs`);
@@ -499,17 +529,52 @@ export const getSpotifyUserPlaylists = async (): Promise<Track[]> => {
  * @returns Promise<boolean> - True if the track is saved, false otherwise
  */
 export const checkTrackSaved = async (trackId: string): Promise<boolean> => {
-  const token = await spotifyAuth.ensureValidToken();
-  const response = await fetch(`https://api.spotify.com/v1/me/tracks/contains?ids=${trackId}`, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to check track saved status: ${response.status}`);
+  // Check cache first
+  try {
+    const cachedStatus = trackDataCache.getLikeStatus(trackId);
+    if (cachedStatus !== null) {
+      return cachedStatus;
+    }
+  } catch (error) {
+    console.warn('Failed to check cache for like status:', error);
   }
-  
-  const data = await response.json();
-  return data[0]; // Returns boolean
+
+  // Cache miss or expired, make API call
+  try {
+    const token = await spotifyAuth.ensureValidToken();
+    const response = await fetch(`https://api.spotify.com/v1/me/tracks/contains?ids=${trackId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to check track saved status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const isLiked = Boolean(data[0]); // Returns boolean
+    
+    // Cache the result
+    try {
+      trackDataCache.setLikeStatus(trackId, isLiked);
+    } catch (error) {
+      console.warn('Failed to cache like status:', error);
+    }
+    
+    return isLiked;
+  } catch (error) {
+    // On API failure, try to return cached value even if expired as fallback
+    try {
+      const cachedTrack = trackDataCache.getTrack(trackId);
+      if (cachedTrack && cachedTrack.isLiked !== undefined) {
+        console.warn('Using potentially stale cached like status due to API failure');
+        return cachedTrack.isLiked;
+      }
+    } catch (cacheError) {
+      console.warn('Failed to retrieve fallback cached status:', cacheError);
+    }
+    
+    throw error;
+  }
 };
 
 /**
@@ -531,6 +596,13 @@ export const saveTrack = async (trackId: string): Promise<void> => {
   if (!response.ok) {
     throw new Error(`Failed to save track: ${response.status}`);
   }
+  
+  // Update cache with new like status after successful API call
+  try {
+    trackDataCache.setLikeStatus(trackId, true);
+  } catch (error) {
+    console.warn('Failed to update cache after saving track:', error);
+  }
 };
 
 /**
@@ -551,5 +623,53 @@ export const unsaveTrack = async (trackId: string): Promise<void> => {
   
   if (!response.ok) {
     throw new Error(`Failed to unsave track: ${response.status}`);
+  }
+  
+  // Update cache with new like status after successful API call
+  try {
+    trackDataCache.setLikeStatus(trackId, false);
+  } catch (error) {
+    console.warn('Failed to update cache after unsaving track:', error);
+  }
+};
+
+/**
+ * Get cached track data if available
+ * @param trackId - The Spotify track ID to retrieve
+ * @returns The cached track data or null if not available
+ */
+export const getCachedTrack = (trackId: string): Track | null => {
+  try {
+    const cachedTrack = trackDataCache.getTrack(trackId);
+    if (cachedTrack) {
+      // Return only the Track interface properties
+      return {
+        id: cachedTrack.id,
+        name: cachedTrack.name,
+        artists: cachedTrack.artists,
+        album: cachedTrack.album,
+        duration_ms: cachedTrack.duration_ms,
+        uri: cachedTrack.uri,
+        preview_url: cachedTrack.preview_url,
+        image: cachedTrack.image
+      };
+    }
+  } catch (error) {
+    console.warn('Failed to retrieve cached track:', error);
+  }
+  return null;
+};
+
+/**
+ * Get cached like status if available
+ * @param trackId - The Spotify track ID to check
+ * @returns The cached like status or null if not available
+ */
+export const getCachedLikeStatus = (trackId: string): boolean | null => {
+  try {
+    return trackDataCache.getLikeStatus(trackId);
+  } catch (error) {
+    console.warn('Failed to retrieve cached like status:', error);
+    return null;
   }
 };
