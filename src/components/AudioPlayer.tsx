@@ -130,7 +130,7 @@ const CloseButton = styled.button`
 const HeaderArea = styled.div`
   position: relative;
   z-index: 3;
-  padding: 0rem 1rem 0 1rem;
+  padding: 0.75rem 1rem .75rem 1rem;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -215,8 +215,8 @@ const LoadingCard = styled(Card) <{ backgroundImage?: string; standalone?: boole
       border-radius: 1.25rem;
       z-index: 1;
       filter: blur(18px);
-      mask-image: linear-gradient(to top, black 10rem, transparent 10rem);
-      -webkit-mask-image: linear-gradient(to top, black 10rem, transparent 10rem);
+      mask-image: linear-gradient(to top, black 9.5rem, transparent 9.5rem);
+      -webkit-mask-image: linear-gradient(to top, black 9.5rem, transparent 9.5rem);
       pointer-events: none;
       clip-path: inset(0 1.25rem);
     }
@@ -262,6 +262,23 @@ const VideoPlayerContainer = styled.div`
   }
 `;
 
+const TopButtonOverlay = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  inset: 0.1rem;
+  padding: 0.75rem 1rem .75rem 1rem;
+  height: 3.25rem; /* Adjust as needed for button area */
+  // background: rgba(24, 24, 28, 0.83); /* semi-transparent dark gray */
+  // backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  z-index: 2;
+  pointer-events: none; /* allow clicks to pass through */
+  border-top-left-radius: 1.25rem;
+  border-top-right-radius: 1.25rem;
+`;
 
 const AudioPlayerComponent = () => {
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -647,6 +664,8 @@ const AudioPlayerComponent = () => {
     return (
       <ContentWrapper>
           <LoadingCard backgroundImage={currentTrack?.image}>
+            {/* Overlay behind top buttons */}
+            <TopButtonOverlay />
             {/* Header with Settings and Playlist buttons */}
             <HeaderArea>
               <HeaderButton 
@@ -669,13 +688,15 @@ const AudioPlayerComponent = () => {
                 </svg>
               </HeaderButton>
             </HeaderArea>
-
-            <CardContent style={{ position: 'absolute', bottom: `0.5rem`, left: 0, right: 0, zIndex: 2 }}>
+            <CardContent style={{ position: 'relative', zIndex: 2 }}>
               <VideoPlayerContainer>
-                <Suspense fallback={<div style={{ minHeight: 320 }}>Loading video player...</div>}>
+                <Suspense fallback={<div style={{ minHeight: 240 }}>Loading video player...</div>}>
                   <VideoPlayer key={videoRefreshKey} currentTrack={currentTrack} showVideo={showVideo} />
                 </Suspense>
               </VideoPlayerContainer>
+            </CardContent>
+            <CardContent style={{ position: 'absolute', bottom: `1rem`, left: 0, right: 0, zIndex: 2 }}>
+              
 
               <SpotifyPlayerControls
                 currentTrack={currentTrack}

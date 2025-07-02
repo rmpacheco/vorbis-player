@@ -56,7 +56,11 @@ const Spinner = styled.div`
 `;
 
 const VideoContainer = styled.div<{ isPlaceholder?: boolean }>`
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   border-radius: 1.25rem;
   overflow: hidden;
   width: 100%;
@@ -214,7 +218,7 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack, showVideo = true }) 
 
   return (
     <Container>
-      <AspectRatio ratio={16 / 9} >
+      <AspectRatio ratio={16/9} >
         <VideoContainer isPlaceholder={showPlaceholder}>
           {showPlaceholder ? (<div></div>
             // <PlaceholderContainer>
@@ -244,6 +248,7 @@ const VideoPlayer = memo<VideoPlayerProps>(({ currentTrack, showVideo = true }) 
             // </PlaceholderContainer>
           ) : currentVideoItem ? (
             currentVideoItem.type === 'youtube' ? (
+
               <StyledIframe
                 src={currentVideoItem.url}
                 title={currentVideoItem.title}
