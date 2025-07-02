@@ -251,16 +251,8 @@ class SpotifyAuth {
 
 export const spotifyAuth = new SpotifyAuth();
 
-export interface Track {
-  id: string;
-  name: string;
-  artists: string;
-  album: string;
-  duration_ms: number;
-  uri: string;
-  preview_url?: string;
-  image?: string;
-}
+// Re-export Track interface from types
+export type { Track } from '../types/track';
 
 export interface PlaylistInfo {
   id: string;

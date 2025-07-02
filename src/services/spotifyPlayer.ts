@@ -1,11 +1,10 @@
 import { spotifyAuth } from './spotify';
 
-// Set up the global callback immediately when this module loads
-if (typeof window !== 'undefined') {
-  window.onSpotifyWebPlaybackSDKReady = () => {
-    console.log('Spotify Web Playback SDK is ready');
-    // SDK is ready but we'll initialize manually when authenticated
-  };
+// Check for global SDK readiness flag set by index.html
+declare global {
+  interface Window {
+    spotifySDKReady?: boolean;
+  }
 }
 
 export class SpotifyPlayerService {
@@ -38,11 +37,22 @@ export class SpotifyPlayerService {
         }
       };
 
-      if (window.Spotify) {
+      // Check if SDK is ready (either already loaded or via callback)
+      if (window.Spotify && window.spotifySDKReady) {
         initPlayer();
       } else {
-        window.onSpotifyWebPlaybackSDKReady = initPlayer;
+        // Wait for SDK to be ready
+        const checkReady = () => {
+          if (window.Spotify && window.spotifySDKReady) {
+            initPlayer();
+          } else {
+            setTimeout(checkReady, 100);
+          }
+        };
         
+        checkReady();
+        
+        // Timeout after 10 seconds
         setTimeout(() => {
           if (!this.player) {
             reject(new Error('Spotify SDK failed to load within timeout'));

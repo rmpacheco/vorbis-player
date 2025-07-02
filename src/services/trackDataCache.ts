@@ -1,4 +1,4 @@
-import { Track } from './spotify';
+import type { Track } from '../types/track';
 
 /**
  * Enhanced track data interface that includes caching metadata and like status
