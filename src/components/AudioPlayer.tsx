@@ -207,6 +207,16 @@ const AudioPlayerComponent = () => {
   const [isShuffled, setIsShuffled] = useState(false);
   const [shuffledIndices, setShuffledIndices] = useState<number[]>([]);
 
+  // Get the actual track index in the original array
+  const getActualTrackIndex = useCallback((playlistIndex: number) => {
+    return shuffledIndices[playlistIndex] || 0;
+  }, [shuffledIndices]);
+
+  // Get the playlist index from the actual track index
+  const getPlaylistIndex = useCallback((actualIndex: number) => {
+    return shuffledIndices.indexOf(actualIndex);
+  }, [shuffledIndices]);
+
   const handlePlaylistSelect = async (playlistId: string, playlistName: string) => {
     try {
       setError(null);
@@ -503,40 +513,35 @@ const AudioPlayerComponent = () => {
 
   // Handle shuffle mode changes
   useEffect(() => {
-    if (tracks.length > 0 && isShuffled) {
+    if (tracks.length === 0) return;
+
+    if (isShuffled) {
+      // Generate a new shuffled order
       const indices = Array.from({ length: tracks.length }, (_, i) => i);
       const shuffled = shuffleArray(indices);
-      // Move current track to position 0 in shuffle order
-      const currentActualIndex = shuffledIndices[currentTrackIndex] || currentTrackIndex;
+
+      // Move the current track to the first position in the shuffled order
+      const currentActualIndex = getActualTrackIndex(currentTrackIndex);
       const shuffledCurrentIndex = shuffled.indexOf(currentActualIndex);
       if (shuffledCurrentIndex > 0) {
         [shuffled[0], shuffled[shuffledCurrentIndex]] = [shuffled[shuffledCurrentIndex], shuffled[0]];
       }
       setShuffledIndices(shuffled);
-      setCurrentTrackIndex(0); // Reset to first position in shuffled order
-    } else if (tracks.length > 0 && !isShuffled) {
+      setCurrentTrackIndex(0); // Play the current track at the start of the shuffled list
+    } else {
       // When turning off shuffle, find the current track's original position
-      const currentActualIndex = shuffledIndices[currentTrackIndex] || currentTrackIndex;
-      const indices = Array.from({ length: tracks.length }, (_, i) => i);
-      setShuffledIndices(indices);
+      const currentActualIndex = getActualTrackIndex(currentTrackIndex);
+      setShuffledIndices(Array.from({ length: tracks.length }, (_, i) => i));
       setCurrentTrackIndex(currentActualIndex);
     }
-  }, [isShuffled, tracks.length, shuffleArray, currentTrackIndex, shuffledIndices]);
+    // Only run when isShuffled or tracks.length changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isShuffled, tracks.length]);
 
   // Handle shuffle toggle
   const handleShuffleToggle = useCallback(() => {
     setIsShuffled(prev => !prev);
   }, []);
-
-  // Get the actual track index in the original array
-  const getActualTrackIndex = useCallback((playlistIndex: number) => {
-    return shuffledIndices[playlistIndex] || 0;
-  }, [shuffledIndices]);
-
-  // Get the playlist index from the actual track index
-  const getPlaylistIndex = useCallback((actualIndex: number) => {
-    return shuffledIndices.indexOf(actualIndex);
-  }, [shuffledIndices]);
 
   // Memoize the current track to prevent unnecessary re-renders
   const currentTrack = useMemo(() => {
