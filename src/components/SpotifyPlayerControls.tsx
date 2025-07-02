@@ -227,8 +227,6 @@ const SpotifyPlayerControls = memo<{
   onPause: () => void;
   onNext: () => void;
   onPrevious: () => void;
-  onShowPlaylist: () => void;
-  onShowSettings: () => void;
   trackCount: number;
   showVideo: boolean;
   onToggleVideo: () => void;
