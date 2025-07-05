@@ -65,14 +65,14 @@ const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor, a
       // Save original image data for animation
       const original = ctx.getImageData(0, 0, img.width, img.height);
       const accentRgb = hexToRgb(accentColor);
-      const minThreshold = 30; // full effect
+      const minThreshold = 5; // full effect
       const maxThreshold = 100; // full fade-out
       let t = 0;
       const animate = () => {
-        t += 0.03;
+        t += 0.02;
         // Breathing: oscillate between 1 and 2.5
         // const vibrance = 1.2 + Math.sin(t) * 1.3;
-        const vibrance = 1.0 + Math.sin(t) * 1.2;
+        const vibrance = 0.9 + Math.sin(t) * 1.3;
         const imageData = ctx.createImageData(original);
         for (let i = 0; i < original.data.length; i += 4) {
           const r = original.data[i];
@@ -90,7 +90,7 @@ const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor, a
             // Animate vibrance/saturation
             const [h, s, l] = rgbToHsl(r, g, b);
             // s = Math.min(1, s * vibrance * 0.5);
-            const newL = Math.min(1, l * (1 + (vibrance - 1) * 0.125));
+            const newL = Math.max(l*.7, Math.min(1, l * (1 + (vibrance - 1) * 0.3)));
             const [nr, ng, nb] = hslToRgb(h, s, newL);
             imageData.data[i] = nr;
             imageData.data[i + 1] = ng;
