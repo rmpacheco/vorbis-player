@@ -5,7 +5,6 @@ import { spotifyAuth, checkTrackSaved, saveTrack, unsaveTrack } from '../service
 import type { Track } from '../services/spotify';
 import LikeButton from './LikeButton';
 import EyedropperOverlay from './EyedropperOverlay';
-import PaintbrushIcon from './PaintbrushIcon';
 
 import { extractTopVibrantColors } from '../utils/colorExtractor';
 import type { ExtractedColor } from '../utils/colorExtractor';
@@ -646,6 +645,16 @@ const SpotifyPlayerControls = memo<{
               <path d="M21 6.5L17 10.5V7C17 6.45 16.55 6 16 6H4C3.45 6 3 6.45 3 7V17C3 17.55 3.45 18 4 18H16C16.55 18 17 17.55 17 17V13.5L21 17.5V6.5M16 16H4V8H16V16M2.41 2.13L1 3.54L4.86 7.4C4.33 7.69 4 8.31 4 9V15C4 16.1 4.9 17 6 17H12C12.69 17 13.31 16.67 13.6 16.14L22.46 25L23.87 23.59L2.41 2.13Z" />
             </svg>
           )} */}
+
+          {onShowVisualEffects && (
+            <ControlButton accentColor={accentColor} onClick={onShowVisualEffects} title="Visual Effects">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"/>
+                <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"/>
+                <path d="M14.5 17.5 4.5 15"/>
+              </svg>
+            </ControlButton>
+          )}
           <VolumeButton onClick={handleVolumeButtonClick} title={isMuted ? 'Unmute' : 'Mute'}>
             {isMuted ? (
               <svg viewBox="0 0 24 24">
@@ -666,15 +675,7 @@ const SpotifyPlayerControls = memo<{
             )}
           </VolumeButton>
           
-          {onShowVisualEffects && (
-            <ControlButton accentColor={accentColor} onClick={onShowVisualEffects} title="Visual Effects">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18.37 2.63 14 7l-1.59-1.59a2 2 0 0 0-2.82 0L8 7l9 9 1.59-1.59a2 2 0 0 0 0-2.82L17 10l4.37-4.37a2.12 2.12 0 1 0-3-3Z"/>
-                <path d="M9 8c-2 3-4 3.5-7 4l8 10c2-1 6-5 6-7"/>
-                <path d="M14.5 17.5 4.5 15"/>
-              </svg>
-            </ControlButton>
-          )}
+       
         </TimelineLeft>
         <TimeLabel>{formatTime(currentPosition)}</TimeLabel>
         <TimelineSlider
