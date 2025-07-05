@@ -12,10 +12,10 @@ interface AlbumArtProps {
     contrast: number;
     saturation: number;
     hue: number;
+    blur: number;
     sepia: number;
     grayscale: number;
     invert: number;
-    opacity: number;
   };
 }
 // const objectPosition = 'center center calc(50% + 3.5rem)';

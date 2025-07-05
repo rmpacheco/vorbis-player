@@ -7,7 +7,6 @@ interface VisualEffectsMenuProps {
   isOpen: boolean;
   onClose: () => void;
   accentColor: string;
-  currentTrack: Track | null;
   filters: {
     brightness: number;
     contrast: number;
@@ -16,7 +15,6 @@ interface VisualEffectsMenuProps {
     sepia: number;
     grayscale: number;
     invert: number;
-    opacity: number;
   };
   onFilterChange: (filterName: string, value: number) => void;
   onResetFilters: () => void;
@@ -229,6 +227,12 @@ const PreviewContainer = styled.div`
   justify-content: center;
 `;
 
+const PreviewImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+`;
 
 const NoImagePlaceholder = styled.div`
   color: rgba(255, 255, 255, 0.5);
@@ -295,7 +299,7 @@ export const VisualEffectsMenu: React.FC<VisualEffectsMenuProps> = ({
                 src={currentTrack.image}
                 alt={currentTrack.name}
                 loading="lazy"
-                onError={(e) => {
+                onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                   const target = e.target as HTMLImageElement;
                   target.src = `https://via.placeholder.com/400x300/1a1a1a/ffffff?text=${encodeURIComponent(currentTrack.name || 'No Image')}`;
                 }}

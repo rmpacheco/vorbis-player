@@ -232,7 +232,16 @@ const AudioPlayerComponent = () => {
   const [accentColorOverrides, setAccentColorOverrides] = useState<Record<string, string>>({});
 
   // Album art filters state
-  const [albumFilters, setAlbumFilters] = useState(() => {
+  const [albumFilters, setAlbumFilters] = useState<{
+    brightness: number;
+    contrast: number;
+    saturation: number;
+    hue: number;
+    blur: number;
+    sepia: number;
+    grayscale: number;
+    invert: number;
+  }>(() => {
     const saved = localStorage.getItem('vorbis-player-album-filters');
     if (saved) {
       try {
@@ -246,8 +255,7 @@ const AudioPlayerComponent = () => {
           blur: parsed.blur ?? 0,
           sepia: parsed.sepia ?? 0,
           grayscale: parsed.grayscale ?? 0,
-          invert: typeof parsed.invert === 'boolean' ? parsed.invert : parsed.invert > 0,
-          opacity: parsed.opacity ?? 100
+          invert: typeof parsed.invert === 'boolean' ? (parsed.invert ? 100 : 0) : (parsed.invert ?? 0)
         };
       } catch (e) {
         // If parsing fails, use defaults
@@ -259,8 +267,7 @@ const AudioPlayerComponent = () => {
           blur: 0,
           sepia: 0,
           grayscale: 0,
-          invert: false,
-          opacity: 100
+          invert: 0
         };
       }
     }
@@ -272,8 +279,7 @@ const AudioPlayerComponent = () => {
       blur: 0,
       sepia: 0,
       grayscale: 0,
-      invert: false,
-      opacity: 100
+      invert: 0
     };
   });
 
@@ -312,6 +318,7 @@ const AudioPlayerComponent = () => {
       contrast: 100,
       saturation: 100,
       hue: 0,
+      blur: 0,
       sepia: 0,
       grayscale: 0,
       invert: 0
