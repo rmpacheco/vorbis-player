@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
+import AlbumArtFilters from './AlbumArtFilters';
+import type { Track } from '../services/spotify';
 
 interface VisualEffectsMenuProps {
   isOpen: boolean;
   onClose: () => void;
   accentColor: string;
+  currentTrack: Track | null;
   filters: {
     brightness: number;
     contrast: number;
     saturation: number;
     hue: number;
-    blur: number;
     sepia: number;
     grayscale: number;
     invert: number;
@@ -200,23 +202,76 @@ const ResetButton = styled.button<{ $accentColor: string }>`
   }
 `;
 
+const PreviewSection = styled.div`
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const PreviewTitle = styled.h4`
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+`;
+
+const PreviewContainer = styled.div`
+  position: relative;
+  width: 100%;
+  height: 120px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+
+const NoImagePlaceholder = styled.div`
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 1rem;
+`;
+
 export const VisualEffectsMenu: React.FC<VisualEffectsMenuProps> = ({
   isOpen,
   onClose,
   accentColor,
+  currentTrack,
   filters,
   onFilterChange,
   onResetFilters
 }) => {
+  // Add ESC key support to close the modal
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    // Only add event listener when modal is open
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    // Cleanup function to remove event listener
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   const filterConfig = [
     { key: 'brightness', label: 'Brightness', min: 0, max: 200, unit: '%' },
     { key: 'contrast', label: 'Contrast', min: 0, max: 200, unit: '%' },
     { key: 'saturation', label: 'Saturation', min: 0, max: 300, unit: '%' },
     { key: 'hue', label: 'Hue Rotate', min: 0, max: 360, unit: '°' },
-    { key: 'blur', label: 'Blur', min: 0, max: 10, unit: 'px' },
     { key: 'sepia', label: 'Sepia', min: 0, max: 100, unit: '%' },
     { key: 'grayscale', label: 'Grayscale', min: 0, max: 100, unit: '%' },
-    { key: 'invert', label: 'Invert', min: 0, max: 100, unit: '%' },
     { key: 'opacity', label: 'Opacity', min: 0, max: 100, unit: '%' }
   ];
 
@@ -230,6 +285,29 @@ export const VisualEffectsMenu: React.FC<VisualEffectsMenuProps> = ({
           </svg>
         </CloseButton>
       </MenuHeader>
+      
+      <PreviewSection>
+        <PreviewTitle>Live Preview</PreviewTitle>
+        <PreviewContainer>
+          {currentTrack?.image ? (
+            <AlbumArtFilters filters={filters}>
+              <PreviewImage
+                src={currentTrack.image}
+                alt={currentTrack.name}
+                loading="lazy"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = `https://via.placeholder.com/400x300/1a1a1a/ffffff?text=${encodeURIComponent(currentTrack.name || 'No Image')}`;
+                }}
+              />
+            </AlbumArtFilters>
+          ) : (
+            <NoImagePlaceholder>
+              No album art available
+            </NoImagePlaceholder>
+          )}
+        </PreviewContainer>
+      </PreviewSection>
       
       <MenuContent>
         <FilterSection>

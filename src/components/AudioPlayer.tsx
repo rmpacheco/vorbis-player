@@ -234,7 +234,37 @@ const AudioPlayerComponent = () => {
   // Album art filters state
   const [albumFilters, setAlbumFilters] = useState(() => {
     const saved = localStorage.getItem('vorbis-player-album-filters');
-    return saved ? JSON.parse(saved) : {
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Migration: ensure boolean invert and add missing properties
+        return {
+          brightness: parsed.brightness ?? 100,
+          contrast: parsed.contrast ?? 100,
+          saturation: parsed.saturation ?? 100,
+          hue: parsed.hue ?? 0,
+          blur: parsed.blur ?? 0,
+          sepia: parsed.sepia ?? 0,
+          grayscale: parsed.grayscale ?? 0,
+          invert: typeof parsed.invert === 'boolean' ? parsed.invert : parsed.invert > 0,
+          opacity: parsed.opacity ?? 100
+        };
+      } catch (e) {
+        // If parsing fails, use defaults
+        return {
+          brightness: 100,
+          contrast: 100,
+          saturation: 100,
+          hue: 0,
+          blur: 0,
+          sepia: 0,
+          grayscale: 0,
+          invert: false,
+          opacity: 100
+        };
+      }
+    }
+    return {
       brightness: 100,
       contrast: 100,
       saturation: 100,
@@ -242,7 +272,7 @@ const AudioPlayerComponent = () => {
       blur: 0,
       sepia: 0,
       grayscale: 0,
-      invert: 0,
+      invert: false,
       opacity: 100
     };
   });
@@ -269,7 +299,7 @@ const AudioPlayerComponent = () => {
     localStorage.setItem('vorbis-player-album-filters', JSON.stringify(albumFilters));
   }, [albumFilters]);
 
-  const handleFilterChange = useCallback((filterName: string, value: number) => {
+  const handleFilterChange = useCallback((filterName: string, value: number | boolean) => {
     setAlbumFilters(prev => ({
       ...prev,
       [filterName]: value
@@ -282,11 +312,9 @@ const AudioPlayerComponent = () => {
       contrast: 100,
       saturation: 100,
       hue: 0,
-      blur: 0,
       sepia: 0,
       grayscale: 0,
-      invert: 0,
-      opacity: 100
+      invert: 0
     });
   }, []);
 
@@ -752,7 +780,7 @@ const AudioPlayerComponent = () => {
         accentColor={accentColor}
         onVideoChanged={() => {
           // Force VideoPlayer to refresh by changing its key
-          setVideoRefreshKey(prev => prev + 1);
+          // Video refresh functionality temporarily disabled
         }}
       />
     </Container>
