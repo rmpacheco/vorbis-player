@@ -1,12 +1,23 @@
 import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import type { Track } from '../services/spotify';
-import { theme } from '@/styles/theme';
+import AlbumArtFilters from './AlbumArtFilters';
 
 interface AlbumArtProps {
   currentTrack: Track | null;
   objectPosition?: string;
   accentColor?: string;
+  albumFilters?: {
+    brightness: number;
+    contrast: number;
+    saturation: number;
+    hue: number;
+    blur: number;
+    sepia: number;
+    grayscale: number;
+    invert: number;
+    opacity: number;
+  };
 }
 // const objectPosition = 'center center calc(50% + 3.5rem)';
 const AlbumArtContainer = styled.div<{ accentColor?: string }>`
@@ -20,35 +31,6 @@ const AlbumArtContainer = styled.div<{ accentColor?: string }>`
   z-index: 2;
 `;
 
-const AccentOverlay = styled.div<{ accentColor?: string }>`
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 3;
-  background: ${({ accentColor }) =>
-    accentColor
-      ? `radial-gradient(circle at 50% 50%, ${accentColor} 60%, transparent 100%)`
-      : 'transparent'};
-  mix-blend-mode: lighten;
-  opacity: 0.85;
-  animation: accentBreath 3.2s ease-in-out infinite;
-  filter: saturate(1.2) brightness(1.1);
-
-  @keyframes accentBreath {
-    0% {
-      filter: saturate(1.2) brightness(1.1);
-      opacity: 0.7;
-    }
-    50% {
-      filter: saturate(2.5) brightness(1.5);
-      opacity: 1;
-    }
-    100% {
-      filter: saturate(1.2) brightness(1.1);
-      opacity: 0.7;
-    }
-  }
-`;
 
 const colorDistance = (color1: [number, number, number], color2: [number, number, number]): number => {
   const [r1, g1, b1] = color1;
@@ -65,9 +47,8 @@ const hexToRgb = (hex: string): [number, number, number] => {
   ];
 };
 
-const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor }) => {
+const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor, albumFilters }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [breath, setBreath] = useState(1);
   const animationRef = useRef<number>();
 
   useEffect(() => {
@@ -88,11 +69,10 @@ const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor })
       const maxThreshold = 100; // full fade-out
       let t = 0;
       const animate = () => {
-        t += 0.1;
+        t += 0.03;
         // Breathing: oscillate between 1 and 2.5
         // const vibrance = 1.2 + Math.sin(t) * 1.3;
-        const vibrance = 1.05 + Math.sin(t) * 1.1;
-        setBreath(vibrance);
+        const vibrance = 1.0 + Math.sin(t) * 1.2;
         const imageData = ctx.createImageData(original);
         for (let i = 0; i < original.data.length; i += 4) {
           const r = original.data[i];
@@ -108,10 +88,10 @@ const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor })
             }
             alpha = Math.max(0, Math.min(1, alpha));
             // Animate vibrance/saturation
-            let [h, s, l] = rgbToHsl(r, g, b);
+            const [h, s, l] = rgbToHsl(r, g, b);
             // s = Math.min(1, s * vibrance * 0.5);
-            l = Math.min(1, l * (1 + (vibrance - 1) * 0.125));
-            const [nr, ng, nb] = hslToRgb(h, s, l);
+            const newL = Math.min(1, l * (1 + (vibrance - 1) * 0.125));
+            const [nr, ng, nb] = hslToRgb(h, s, newL);
             imageData.data[i] = nr;
             imageData.data[i + 1] = ng;
             imageData.data[i + 2] = nb;
@@ -152,10 +132,10 @@ const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor })
     }
     return [h, s, l];
   }
-  function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  function hslToRgb(h: number, s: number, lightness: number): [number, number, number] {
     let r, g, b;
     if (s === 0) {
-      r = g = b = l; // achromatic
+      r = g = b = lightness; // achromatic
     } else {
       const hue2rgb = (p: number, q: number, t: number) => {
         if (t < 0) t += 1;
@@ -165,8 +145,8 @@ const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor })
         if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
         return p;
       };
-      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      const p = 2 * l - q;
+      const q = lightness < 0.5 ? lightness * (1 + s) : lightness + s - lightness * s;
+      const p = 2 * lightness - q;
       r = hue2rgb(p, q, h + 1 / 3);
       g = hue2rgb(p, q, h);
       b = hue2rgb(p, q, h - 1 / 3);
@@ -175,8 +155,9 @@ const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor })
   }
 
   if (!currentTrack) return null;
-  return (
-    <AlbumArtContainer accentColor={accentColor} >
+
+  const albumArtContent = (
+    <>
       {currentTrack?.image && (
         <img
           src={currentTrack.image}
@@ -211,6 +192,18 @@ const AlbumArt: React.FC<AlbumArtProps> = ({ currentTrack = null, accentColor })
           borderRadius: '1.25rem',
         }}
       />
+    </>
+  );
+
+  return (
+    <AlbumArtContainer accentColor={accentColor}>
+      {albumFilters ? (
+        <AlbumArtFilters filters={albumFilters}>
+          {albumArtContent}
+        </AlbumArtFilters>
+      ) : (
+        albumArtContent
+      )}
     </AlbumArtContainer>
   );
 };

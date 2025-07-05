@@ -14,6 +14,7 @@ import { flexCenter, flexColumn, cardBase } from '../styles/utils';
 import AlbumArt from './AlbumArt';
 import { extractDominantColor } from '../utils/colorExtractor';
 import SpotifyPlayerControls from './SpotifyPlayerControls';
+import VisualEffectsMenu from './VisualEffectsMenu';
 import { theme } from '@/styles/theme';
 
 // Styled components
@@ -226,8 +227,25 @@ const AudioPlayerComponent = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [accentColor, setAccentColor] = useState<string>(theme.colors.accent );
   const [showVideo, setShowVideo] = useState(false);
+  const [showVisualEffects, setShowVisualEffects] = useState(false);
   // New: per-song accent color overrides
   const [accentColorOverrides, setAccentColorOverrides] = useState<Record<string, string>>({});
+
+  // Album art filters state
+  const [albumFilters, setAlbumFilters] = useState(() => {
+    const saved = localStorage.getItem('vorbis-player-album-filters');
+    return saved ? JSON.parse(saved) : {
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      hue: 0,
+      blur: 0,
+      sepia: 0,
+      grayscale: 0,
+      invert: 0,
+      opacity: 100
+    };
+  });
 
   // Load overrides from localStorage on mount
   useEffect(() => {
@@ -245,6 +263,32 @@ const AudioPlayerComponent = () => {
   useEffect(() => {
     localStorage.setItem('accentColorOverrides', JSON.stringify(accentColorOverrides));
   }, [accentColorOverrides]);
+
+  // Persist album filters to localStorage
+  useEffect(() => {
+    localStorage.setItem('vorbis-player-album-filters', JSON.stringify(albumFilters));
+  }, [albumFilters]);
+
+  const handleFilterChange = useCallback((filterName: string, value: number) => {
+    setAlbumFilters(prev => ({
+      ...prev,
+      [filterName]: value
+    }));
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setAlbumFilters({
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      hue: 0,
+      blur: 0,
+      sepia: 0,
+      grayscale: 0,
+      invert: 0,
+      opacity: 100
+    });
+  }, []);
 
   const handlePlaylistSelect = async (playlistId: string, playlistName: string) => {
     try {
@@ -633,7 +677,11 @@ const AudioPlayerComponent = () => {
           <LoadingCard backgroundImage={currentTrack?.image}>
 
             <CardContent style={{ position: 'relative', zIndex: 2 }}>
-              <AlbumArt currentTrack={currentTrack} accentColor={accentColor} />
+              <AlbumArt 
+                currentTrack={currentTrack} 
+                accentColor={accentColor}
+                albumFilters={albumFilters}
+              />
               
             </CardContent>
             <CardContent style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2 }}>
@@ -650,8 +698,17 @@ const AudioPlayerComponent = () => {
                 showVideo={showVideo}
                 onToggleVideo={() => setShowVideo(v => !v)}
                 onAccentColorChange={handleAccentColorChange}
+                onShowVisualEffects={() => setShowVisualEffects(true)}
               />
             </CardContent>
+            <VisualEffectsMenu
+              isOpen={showVisualEffects}
+              onClose={() => setShowVisualEffects(false)}
+              accentColor={accentColor}
+              filters={albumFilters}
+              onFilterChange={handleFilterChange}
+              onResetFilters={handleResetFilters}
+            />
           </LoadingCard>
 
         <PlaylistOverlay
