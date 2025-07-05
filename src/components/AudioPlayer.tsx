@@ -240,7 +240,7 @@ const AudioPlayerComponent = () => {
     blur: number;
     sepia: number;
     grayscale: number;
-    invert: number;
+    invert: boolean;
   }>(() => {
     const saved = localStorage.getItem('vorbis-player-album-filters');
     if (saved) {
@@ -255,7 +255,7 @@ const AudioPlayerComponent = () => {
           blur: parsed.blur ?? 0,
           sepia: parsed.sepia ?? 0,
           grayscale: parsed.grayscale ?? 0,
-          invert: typeof parsed.invert === 'boolean' ? (parsed.invert ? 100 : 0) : (parsed.invert ?? 0)
+          invert: typeof parsed.invert === 'boolean' ? parsed.invert : (parsed.invert > 0)
         };
       } catch (e) {
         // If parsing fails, use defaults
@@ -267,7 +267,7 @@ const AudioPlayerComponent = () => {
           blur: 0,
           sepia: 0,
           grayscale: 0,
-          invert: 0
+          invert: false
         };
       }
     }
@@ -279,7 +279,7 @@ const AudioPlayerComponent = () => {
       blur: 0,
       sepia: 0,
       grayscale: 0,
-      invert: 0
+      invert: false
     };
   });
 
@@ -321,7 +321,7 @@ const AudioPlayerComponent = () => {
       blur: 0,
       sepia: 0,
       grayscale: 0,
-      invert: 0
+      invert: false
     });
   }, []);
 

@@ -15,7 +15,7 @@ interface AlbumArtProps {
     blur: number;
     sepia: number;
     grayscale: number;
-    invert: number;
+    invert: boolean;
   };
 }
 // const objectPosition = 'center center calc(50% + 3.5rem)';

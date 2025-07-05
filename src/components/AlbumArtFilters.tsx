@@ -10,7 +10,7 @@ interface AlbumArtFiltersProps {
     blur: number;
     sepia: number;
     grayscale: number;
-    invert: number;
+    invert: boolean;
   };
   backgroundImage?: string;
   className?: string;
@@ -39,7 +39,7 @@ export const AlbumArtFilters: React.FC<AlbumArtFiltersProps> = ({
     `blur(${filters.blur}px)`,
     `sepia(${filters.sepia}%)`,
     `grayscale(${filters.grayscale}%)`,
-    `invert(${filters.invert}%)`
+    `invert(${filters.invert ? 100 : 0}%)`
   ].join(' ');
 
   return (
