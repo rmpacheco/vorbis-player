@@ -238,6 +238,17 @@ const SpotifyPlayerControls = memo<{
           </ControlButton>
         </TrackInfoCenter>
         <TrackInfoRight>
+          <ControlButton accentColor={accentColor} onClick={onShowPlaylist} title="Show Playlist">
+            <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
+              <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+            </svg>
+          </ControlButton>
+        </TrackInfoRight>
+      </TrackInfoRow>
+
+      {/* Timeline Row with time, slider, and right controls */}
+      <TimelineRow>
+        <TimelineLeft>
           <LikeButton
             trackId={currentTrack?.id}
             isLiked={isLiked}
@@ -245,19 +256,6 @@ const SpotifyPlayerControls = memo<{
             accentColor={accentColor}
             onToggleLike={handleLikeToggle}
           />
-
-        </TrackInfoRight>
-      </TrackInfoRow>
-
-      {/* Timeline Row with time, slider, and right controls */}
-      <TimelineRow>
-        <TimelineLeft>
-          <ControlButton accentColor={accentColor} onClick={onShowVisualEffects} isActive={showVisualEffects} title="Visual effects">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
-            </svg>
-          </ControlButton>
           <Suspense fallback={<div style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⚡</div>}>
             <ColorPickerPopover
               accentColor={accentColor}
@@ -299,9 +297,10 @@ const SpotifyPlayerControls = memo<{
         />
 
         <TimelineRight>
-          <ControlButton accentColor={accentColor} onClick={onShowPlaylist} title="Show Playlist">
-            <svg viewBox="0 0 24 24" role="img" aria-hidden="true">
-              <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+          <ControlButton accentColor={accentColor} onClick={onShowVisualEffects} isActive={showVisualEffects} title="Visual effects">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
             </svg>
           </ControlButton>
         </TimelineRight>
