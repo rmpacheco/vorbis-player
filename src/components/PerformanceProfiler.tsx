@@ -34,8 +34,7 @@ export const PerformanceProfilerComponent: React.FC<PerformanceProfilerProps> = 
     actualDuration: number,
     baseDuration: number,
     startTime: number,
-    commitTime: number,
-    interactions: Set<any>
+    commitTime: number
   ) => {
     const data: ProfilerData = {
       id,
@@ -44,7 +43,7 @@ export const PerformanceProfilerComponent: React.FC<PerformanceProfilerProps> = 
       baseDuration,
       startTime,
       commitTime,
-      interactions
+      interactions: new Set()
     };
     
     if (onRender) {

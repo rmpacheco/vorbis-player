@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, memo } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import EyedropperOverlay from './EyedropperOverlay';

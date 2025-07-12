@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useDebounce, useDebouncedCallback } from './useDebounce';
 import { DEFAULT_GLOW_RATE } from '../components/AccentColorGlowOverlay';
 
@@ -68,13 +68,11 @@ export const useGlowSettings = (): UseGlowSettingsReturn => {
   // Debounce the glow settings to prevent excessive re-renders
   const debouncedGlowSettings = useDebounce(glowSettings, DEBOUNCE_DELAY);
   
-  // Use ref to track if we need to save to localStorage
-  const saveToStorageRef = useRef<NodeJS.Timeout | null>(null);
-  
   // Debounced save to localStorage to prevent excessive writes
-  const debouncedSave = useDebouncedCallback((settings: GlowSettings) => {
-    saveGlowSettingsToStorage(settings);
-  }, DEBOUNCE_DELAY);
+  const debouncedSave = useDebouncedCallback(
+    saveGlowSettingsToStorage as (...args: unknown[]) => unknown,
+    DEBOUNCE_DELAY
+  ) as (settings: GlowSettings) => void;
 
   // Update settings and trigger debounced save
   const updateSettings = useCallback((updater: (prev: GlowSettings) => GlowSettings) => {
