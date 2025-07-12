@@ -6,8 +6,8 @@ import { spotifyAuth } from './services/spotify';
 import './services/spotifyPlayer';
 import { ThemeProvider } from './styles/ThemeProvider';
 import { flexCenter, buttonPrimary } from './styles/utils';
-import { PerformanceDebugger } from './components/PerformanceProfiler';
-import { PerformanceTestSuite } from './components/PerformanceTestSuite';
+// import { PerformanceDebugger } from './components/PerformanceProfiler';
+// import { PerformanceTestSuite } from './components/PerformanceTestSuite';
 
 // Styled components
 const AppContainer = styled.div`
@@ -120,13 +120,13 @@ function App() {
     <ThemeProvider>
       <AppContainer>
         <AudioPlayerComponent />
-        
-        {/* Performance monitoring and testing tools */}
-        <PerformanceDebugger visible={process.env.NODE_ENV === 'development'} />
+
+        {/* Performance monitoring and testing tools - hidden for now */}
+        {/* <PerformanceDebugger visible={process.env.NODE_ENV === 'development'} />
         <PerformanceTestSuite 
           isVisible={showPerformanceTest} 
           onClose={() => setShowPerformanceTest(false)} 
-        />
+        /> */}
       </AppContainer>
     </ThemeProvider>
   );
