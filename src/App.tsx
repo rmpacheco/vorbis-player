@@ -52,7 +52,7 @@ const RetryButton = styled.button`
 function App() {
   const [isAuthenticating, setIsAuthenticating] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [showPerformanceTest, setShowPerformanceTest] = useState(false);
+  // const [showPerformanceTest, setShowPerformanceTest] = useState(false);
 
   useEffect(() => {
     const authenticate = async () => {
@@ -75,7 +75,7 @@ function App() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.ctrlKey && event.shiftKey && event.key === 'P') {
         event.preventDefault();
-        setShowPerformanceTest(prev => !prev);
+        // setShowPerformanceTest(prev => !prev);
       }
     };
 

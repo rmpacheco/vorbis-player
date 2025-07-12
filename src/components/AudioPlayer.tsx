@@ -87,10 +87,10 @@ const LoadingCard = styled.div<{
       content: '';
       position: absolute;
       inset: 0;
-      // background: rgba(32, 30, 30, 0.7);
-      background: rgba(19, 19, 19, 0.9);
+      background: rgba(32, 30, 30, 0.7);
+      // background: rgba(19, 19, 19, 0.8);
       // background: ${(props: { accentColor?: string }) => props.accentColor || 'rgba(32, 30, 30, 0.7)'};
-      backdrop-filter: blur(16px);
+      backdrop-filter: blur(40px);
       border-radius: 1.25rem;
       z-index: 1;
     }
@@ -427,7 +427,7 @@ const AudioPlayerComponent = () => {
           glowRate={effectiveGlow.rate}
         >
 
-          <CardContent style={{ position: 'relative', zIndex: 2, marginTop: '-0.15rem' }}>
+          <CardContent style={{ position: 'relative', zIndex: 2, marginTop: '-0.25rem' }}>
             <AlbumArt currentTrack={currentTrack} accentColor={accentColor} glowIntensity={glowEnabled ? effectiveGlow.intensity : 0} glowRate={effectiveGlow.rate} albumFilters={albumFilters} />
           </CardContent>
           <CardContent style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 2 }}>
