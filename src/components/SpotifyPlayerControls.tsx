@@ -19,7 +19,17 @@ const PlayerControlsContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }: any) => theme.spacing.sm};
-  padding: ${sm} ${lg} ${lg} ${lg};
+  
+  /* Desktop and tablet styling */
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.md}) {
+    padding: ${sm} ${lg} ${lg} ${lg};
+  }
+  
+  /* Mobile styling - optimized for full viewport */
+  @media (max-width: ${({ theme }: any) => theme.breakpoints.md}) {
+    padding: 0.5rem 1rem 1rem 1rem;
+    gap: 0.375rem;
+  }
 `;
 
 const PlayerTrackName = styled.div`
@@ -67,6 +77,12 @@ const TrackInfoCenter = styled.div`
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  
+  /* Mobile responsive adjustments */
+  @media (max-width: ${({ theme }: any) => theme.breakpoints.md}) {
+    min-width: 7rem;
+    gap: 0.25rem;
+  }
 `;
 
 const TrackInfoRight = styled.div`
@@ -85,18 +101,38 @@ const ControlButton = styled.button<{ isActive?: boolean; accentColor: string }>
   transition: all 0.2s ease;
   padding: ${theme.spacing.sm};
   border-radius: ${theme.borderRadius.md};
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  
+  /* Mobile touch-friendly adjustments */
+  @media (max-width: ${({ theme }: any) => theme.breakpoints.md}) {
+    min-width: 3rem;
+    min-height: 3rem;
+    padding: 0.75rem;
+    border-radius: ${theme.borderRadius.lg};
+    
+    &:active {
+      transform: scale(0.95);
+    }
+  }
   
   svg {
     width: 1.5rem;
     height: 1.5rem;
     fill: currentColor;
+    
+    @media (max-width: ${({ theme }: any) => theme.breakpoints.md}) {
+      width: 1.75rem;
+      height: 1.75rem;
+    }
   }
   
   background: ${({ isActive, accentColor }: { isActive?: boolean; accentColor: string }) => isActive ? accentColor : theme.colors.control.background};
   color: ${theme.colors.white};
   
-  &:hover {
+  &:hover, &:focus {
     background: ${({ isActive, accentColor }: { isActive?: boolean; accentColor: string }) => isActive ? `${accentColor}4D` : theme.colors.control.backgroundHover};
+    outline: none;
   }
 `;
 

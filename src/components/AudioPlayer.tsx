@@ -18,31 +18,68 @@ import { DEFAULT_GLOW_RATE } from './AccentColorGlowOverlay';
 
 const Container = styled.div`
   width: 100%;
-  ${flexCenter};
-  padding: ${({ theme }: any) => theme.spacing.sm};
+  min-height: 100vh;
+  position: relative;
   
-  @media (min-width: ${({ theme }: any) => theme.breakpoints.sm}) {
+  /* Desktop - use flexCenter */
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.lg}) {
+    ${flexCenter};
     padding: ${({ theme }: any) => theme.spacing.sm};
+  }
+  
+  /* Tablet */
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.md}) and (max-width: ${({ theme }: any) => theme.breakpoints.lg}) {
+    ${flexCenter};
+    padding: ${({ theme }: any) => theme.spacing.sm};
+  }
+  
+  /* Mobile - no flex centering, just full width */
+  @media (max-width: ${({ theme }: any) => theme.breakpoints.md}) {
+    padding: 0;
+    min-height: 100vh;
+    display: block;
   }
 `;
 
 const ContentWrapper = styled.div`
-  width: 1024px;
-  height: 1126px;
+  /* Desktop and large tablets */
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.lg}) {
+    width: 1024px;
+    height: 1126px;
+    margin: 0 auto;
+    padding: 0.5rem;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1000;
+  }
+  
+  /* Medium tablets */
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.md}) and (max-width: ${({ theme }: any) => theme.breakpoints.lg}) {
+    width: 768px;
+    height: 872px;
+    margin: 0 auto;
+    padding: 0.5rem;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1000;
+  }
+  
+  /* Mobile phones - full viewport */
+  @media (max-width: ${({ theme }: any) => theme.breakpoints.md}) {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1000;
+    overflow: hidden;
+  }
 
-  @media (max-height: ${theme.breakpoints.lg}) {
+  @media (max-height: ${({ theme }: any) => theme.breakpoints.lg}) and (min-width: ${({ theme }: any) => theme.breakpoints.md}) {
     width: 768px;
     height: 872px;
   }
-
-  margin: 0 auto;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  box-sizing: border-box;
-  position: absolute;
-  z-index: 1000;
 `;
 
 
@@ -55,25 +92,39 @@ const LoadingCard = styled.div<{
   glowRate?: number;
 }>`
   ${cardBase};
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   overflow: hidden;
-  border-radius: 1.25rem;
   border: 1px solid rgba(34, 36, 36, 0.68);
   box-shadow: 0 8px 24px rgba(38, 36, 37, 0.7), 0 2px 8px rgba(22, 21, 21, 0.6);
+  
+  /* Desktop and tablet absolute positioning */
+  @media (min-width: ${({ theme }: any) => theme.breakpoints.md}) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 1.25rem;
+  }
+  
+  /* Mobile - full viewport, no absolute positioning */
+  @media (max-width: ${({ theme }: any) => theme.breakpoints.md}) {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    border: none;
+    margin: 0;
+    padding: 0;
+  }
+  
   ${({ backgroundImage }) => backgroundImage ? `
     &::after {
       content: '';
       position: absolute;
-      inset: 0.1rem;
       background-image: url(${backgroundImage});
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
-      border-radius: 1.25rem;
       z-index: 0;
     }
     &::before {
@@ -82,8 +133,29 @@ const LoadingCard = styled.div<{
       inset: 0;
       background: rgba(32, 30, 30, 0.7);
       backdrop-filter: blur(40px);
-      border-radius: 1.25rem;
       z-index: 1;
+    }
+    
+    /* Desktop/tablet background styling */
+    @media (min-width: ${({ theme }: any) => theme.breakpoints.md}) {
+      &::after {
+        inset: 0.1rem;
+        border-radius: 1.25rem;
+      }
+      &::before {
+        border-radius: 1.25rem;
+      }
+    }
+    
+    /* Mobile background styling */
+    @media (max-width: ${({ theme }: any) => theme.breakpoints.md}) {
+      &::after {
+        inset: 0;
+        border-radius: 0;
+      }
+      &::before {
+        border-radius: 0;
+      }
     }
   ` : `
     background: rgba(38, 38, 38, 0.5);
