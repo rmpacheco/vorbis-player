@@ -86,6 +86,28 @@ const TrackInfoRight = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }: any) => theme.spacing.xs};
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    position: absolute;
+    right: ${lg};
+    top: -60px;
+  }
+`;
+
+// Mobile-specific container for buttons that move to the right side on mobile
+const MobileRightButtons = styled.div`
+  display: none;
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }: any) => theme.spacing.xs};
+    position: absolute;
+    right: ${lg};
+    top: -140px;
+    z-index: 10;
+    align-items: center;
+  }
 `;
 
 const ControlButton = styled.button<{ isActive?: boolean; accentColor: string }>`
@@ -141,6 +163,10 @@ const TimelineLeft = styled.div`
   display: flex;
   align-items: center;
   gap: ${({ theme }: any) => theme.spacing.xs};
+  
+  @media (max-width: ${theme.breakpoints.sm}) {
+    display: none;
+  }
 `;
 
 const TimelineRight = styled.div`
@@ -333,6 +359,41 @@ const SpotifyPlayerControls = memo<SpotifyPlayerControlsProps>(({ currentTrack, 
           </ControlButton>
         </TrackInfoRight>
       </TrackInfoRow>
+
+      {/* Mobile Right Side Buttons - Like, Glow, Color Picker */}
+      <MobileRightButtons>
+        <LikeButton
+          trackId={currentTrack?.id}
+          isLiked={isLiked}
+          isLoading={isLikePending}
+          accentColor={accentColor}
+          onToggleLike={handleLikeToggle}
+        />
+        {onGlowToggle && (
+          <ControlButton
+            accentColor={accentColor}
+            onClick={onGlowToggle}
+            isActive={glowEnabled}
+            title={`Glow ${glowEnabled ? 'enabled' : 'disabled'}`}
+            data-testid="glow-toggle"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 3v4m0 10v4m9-9h-4m-10 0H3" />
+            </svg>
+          </ControlButton>
+        )}
+        <Suspense fallback={<div style={{ width: '40px', height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⚡</div>}>
+          <ColorPickerPopover
+            accentColor={accentColor}
+            currentTrack={currentTrack}
+            onAccentColorChange={handleAccentColorChange}
+            customAccentColorOverrides={customAccentColorOverrides}
+            onCustomAccentColor={handleCustomAccentColor}
+          />
+        </Suspense>
+      </MobileRightButtons>
 
       {/* Timeline Row with time, slider, and right controls */}
       <TimelineRow>

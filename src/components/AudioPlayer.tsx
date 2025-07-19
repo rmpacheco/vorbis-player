@@ -35,6 +35,13 @@ const ContentWrapper = styled.div`
     height: 922px;
   }
 
+  @media (max-width: ${theme.breakpoints.sm}) {
+    width: 390px;
+    height: 844px;
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+
   margin: 0 auto;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
