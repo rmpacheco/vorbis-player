@@ -179,7 +179,7 @@ const AudioPlayerComponent = () => {
     }
   }, [tracks, setCurrentTrackIndex]);
 
-  const { handlePlaylistSelect } = usePlaylistManager({
+  const { handlePlaylistSelect, shuffleCurrentPlaylist } = usePlaylistManager({
     setError,
     setIsLoading,
     setSelectedPlaylistId,
@@ -362,6 +362,10 @@ const AudioPlayerComponent = () => {
     }
   }, [currentTrack?.id, currentTrack?.image, setAccentColorOverrides, setAccentColor, theme.colors.accent]);
 
+  const handleShufflePlaylist = useCallback(() => {
+    shuffleCurrentPlaylist(tracks, currentTrackIndex);
+  }, [shuffleCurrentPlaylist, tracks, currentTrackIndex]);
+
   const currentAlbumId = currentTrack?.album || '';
   const currentAlbumName = currentTrack?.album || '';
   const effectiveGlow = glowMode === 'per-album' && currentAlbumId && perAlbumGlow[currentAlbumId]
@@ -411,6 +415,7 @@ const AudioPlayerComponent = () => {
                 onShowVisualEffects={handleShowVisualEffects}
                 glowEnabled={glowEnabled}
                 onGlowToggle={handleGlowToggle}
+                onShufflePlaylist={handleShufflePlaylist}
               />
             </Suspense>
           </CardContent>

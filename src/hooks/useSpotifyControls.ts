@@ -27,12 +27,14 @@ export const useSpotifyControls = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isLikePending, setIsLikePending] = useState(false);
+  const [isShuffled, setIsShuffled] = useState(false);
 
   useEffect(() => {
     const checkPlaybackState = async () => {
       const state = await spotifyPlayer.getCurrentState();
       if (state) {
         setIsPlaying(!state.paused);
+        setIsShuffled(state.shuffle);
         if (!isDragging) {
           setCurrentPosition(state.position);
         }
@@ -167,6 +169,18 @@ export const useSpotifyControls = ({
     handleSeek(position);
   }, [handleSeek]);
 
+  const handleShuffleToggle = useCallback(async () => {
+    try {
+      const newShuffleState = !isShuffled;
+      setIsShuffled(newShuffleState);
+      await spotifyPlayer.setShuffle(newShuffleState);
+    } catch (error) {
+      console.error('Failed to toggle shuffle:', error);
+      // Revert the state if the API call failed
+      setIsShuffled(isShuffled);
+    }
+  }, [isShuffled]);
+
   const formatTime = useCallback((ms: number) => {
     const seconds = Math.floor(ms / 1000);
     const minutes = Math.floor(seconds / 60);
@@ -183,6 +197,7 @@ export const useSpotifyControls = ({
     isDragging,
     isLiked,
     isLikePending,
+    isShuffled,
     handlePlayPause,
     handleMuteToggle,
     handleVolumeButtonClick,
@@ -191,6 +206,7 @@ export const useSpotifyControls = ({
     handleSliderChange,
     handleSliderMouseDown,
     handleSliderMouseUp,
+    handleShuffleToggle,
     formatTime,
     onNext,
     onPrevious,

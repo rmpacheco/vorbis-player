@@ -200,10 +200,12 @@ interface SpotifyPlayerControlsProps {
   // Add glow control props
   glowEnabled?: boolean;
   onGlowToggle?: () => void;
+  // Add playlist shuffle prop
+  onShufflePlaylist?: () => void;
 }
 
 // --- SpotifyPlayerControls Component ---
-const SpotifyPlayerControls = memo<SpotifyPlayerControlsProps>(({ currentTrack, accentColor, onPlay, onPause, onNext, onPrevious, onShowPlaylist, onAccentColorChange, onShowVisualEffects, showVisualEffects, glowEnabled, onGlowToggle }) => {
+const SpotifyPlayerControls = memo<SpotifyPlayerControlsProps>(({ currentTrack, accentColor, onPlay, onPause, onNext, onPrevious, onShowPlaylist, onAccentColorChange, onShowVisualEffects, showVisualEffects, glowEnabled, onGlowToggle, onShufflePlaylist }) => {
   // Custom accent color per track (from eyedropper)
   const [customAccentColorOverrides, setCustomAccentColorOverrides] = useState<Record<string, string>>({});
 
@@ -216,12 +218,14 @@ const SpotifyPlayerControls = memo<SpotifyPlayerControlsProps>(({ currentTrack, 
     duration,
     isLiked,
     isLikePending,
+    isShuffled,
     handlePlayPause,
     handleVolumeButtonClick,
     handleLikeToggle,
     handleSliderChange,
     handleSliderMouseDown,
     handleSliderMouseUp,
+    handleShuffleToggle,
     formatTime,
   } = useSpotifyControls({
     currentTrack,
@@ -288,6 +292,17 @@ const SpotifyPlayerControls = memo<SpotifyPlayerControlsProps>(({ currentTrack, 
     }
   }, [currentTrack?.id, onAccentColorChange]);
 
+  // Combined shuffle handler that handles both Spotify shuffle and playlist shuffle
+  const handleCombinedShuffle = useCallback(async () => {
+    // First toggle Spotify shuffle
+    await handleShuffleToggle();
+    
+    // Then shuffle the local playlist if available
+    if (onShufflePlaylist) {
+      onShufflePlaylist();
+    }
+  }, [handleShuffleToggle, onShufflePlaylist]);
+
 
   return (
     <PlayerControlsContainer>
@@ -300,7 +315,17 @@ const SpotifyPlayerControls = memo<SpotifyPlayerControlsProps>(({ currentTrack, 
       {/* Controls Row - now without track info in the left section */}
       <TrackInfoRow style={{ position: 'relative' }}>
         <TrackInfoLeft>
-          {/* Left side is now empty - could be used for other controls if needed */}
+          <ControlButton 
+            accentColor={accentColor} 
+            onClick={handleCombinedShuffle} 
+            isActive={isShuffled} 
+            title={`Shuffle ${isShuffled ? 'enabled' : 'disabled'}`}
+            data-testid="shuffle-button"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+            </svg>
+          </ControlButton>
         </TrackInfoLeft>
         <TrackInfoCenter>
           <ControlButton accentColor={accentColor} onClick={onPrevious}>

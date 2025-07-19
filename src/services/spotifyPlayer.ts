@@ -174,6 +174,27 @@ export class SpotifyPlayerService {
     }
   }
 
+  async setShuffle(shuffle: boolean): Promise<void> {
+    if (!this.deviceId || !this.isReady) {
+      throw new Error('Spotify player not ready');
+    }
+
+    const token = await spotifyAuth.ensureValidToken();
+    
+    const response = await fetch(`https://api.spotify.com/v1/me/player/shuffle?state=${shuffle}&device_id=${this.deviceId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+    });
+
+    if (!response.ok && response.status !== 204) {
+      const errorText = await response.text();
+      console.error('Failed to set shuffle:', errorText);
+      throw new Error(`Failed to set shuffle: ${response.status} ${response.statusText}`);
+    }
+  }
+
   async getCurrentState(): Promise<SpotifyPlaybackState | null> {
     if (this.player) {
       return await this.player.getCurrentState();

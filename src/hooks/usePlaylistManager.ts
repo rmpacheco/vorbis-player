@@ -116,7 +116,25 @@ export const usePlaylistManager = ({
     }
   }, [setError, setIsLoading, setSelectedPlaylistId, setTracks, setCurrentTrackIndex, playTrack]);
 
+  const shuffleCurrentPlaylist = useCallback((tracks: Track[], currentTrackIndex: number) => {
+    if (tracks.length === 0) return;
+    
+    // Get the currently playing track
+    const currentTrack = tracks[currentTrackIndex];
+    
+    // Shuffle the array
+    const shuffledTracks = shuffleArray(tracks);
+    
+    // Find the new index of the currently playing track
+    const newCurrentIndex = shuffledTracks.findIndex(track => track.id === currentTrack?.id);
+    
+    // Update the tracks and current index
+    setTracks(shuffledTracks);
+    setCurrentTrackIndex(newCurrentIndex >= 0 ? newCurrentIndex : 0);
+  }, [setTracks, setCurrentTrackIndex]);
+
   return {
-    handlePlaylistSelect
+    handlePlaylistSelect,
+    shuffleCurrentPlaylist
   };
 };
