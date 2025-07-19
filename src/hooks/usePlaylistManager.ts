@@ -38,7 +38,7 @@ export const usePlaylistManager = ({
   playTrack
 }: UsePlaylistManagerProps) => {
   
-  const handlePlaylistSelect = useCallback(async (playlistId: string) => {
+  const handlePlaylistSelect = useCallback(async (playlistId: string, _playlistName?: string) => {
     try {
       setError(null);
       setIsLoading(true);
