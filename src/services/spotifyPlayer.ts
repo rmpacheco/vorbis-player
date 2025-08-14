@@ -22,6 +22,12 @@ export class SpotifyPlayerService {
       return;
     }
 
+    // Check DRM support before initializing
+    const drmSupported = await this.checkDRMSupport();
+    if (!drmSupported) {
+      console.warn('🔒 DRM (Widevine) not detected. Spotify playback may fail.');
+    }
+
     return new Promise((resolve, reject) => {
       const initPlayer = () => {
         try {
@@ -44,6 +50,32 @@ export class SpotifyPlayerService {
         }, 10000);
       }
     });
+  }
+
+  private async checkDRMSupport(): Promise<boolean> {
+    if (!navigator.requestMediaKeySystemAccess) {
+      return false;
+    }
+
+    try {
+      const config = [{
+        initDataTypes: ['cenc'],
+        audioCapabilities: [{
+          contentType: 'audio/mp4;codecs="mp4a.40.2"',
+          robustness: 'SW_SECURE_CRYPTO'
+        }],
+        videoCapabilities: [{
+          contentType: 'video/mp4;codecs="avc1.42E01E"',
+          robustness: 'SW_SECURE_CRYPTO'
+        }]
+      }];
+
+      await navigator.requestMediaKeySystemAccess('com.widevine.alpha', config);
+      return true;
+    } catch (error) {
+      console.warn('Widevine DRM not supported:', error);
+      return false;
+    }
   }
 
   private setupPlayer(): void {
@@ -72,8 +104,17 @@ export class SpotifyPlayerService {
       this.isReady = false;
     });
 
-    this.player.addListener('initialization_error', ({ message }: { message: string }) => {
+    this.player.addListener('initialization_error', async ({ message }: { message: string }) => {
       console.error('Failed to initialize', message);
+      
+      // Check if this is a DRM-related error
+      if (message.includes('EMEError') || message.includes('keysystem')) {
+        const drmSupported = await this.checkDRMSupport();
+        if (!drmSupported) {
+          console.error('🔒 DRM (Widevine) not available in this environment. Spotify playback requires DRM support.');
+          throw new Error('DRM_NOT_SUPPORTED: This environment does not support Widevine DRM, which is required for Spotify playback. Try running in a standard web browser or use a Widevine-enabled Electron build.');
+        }
+      }
     });
 
     this.player.addListener('authentication_error', ({ message }: { message: string }) => {
@@ -203,6 +244,10 @@ export class SpotifyPlayerService {
 
   getIsReady(): boolean {
     return this.isReady;
+  }
+
+  async isDRMSupported(): Promise<boolean> {
+    return await this.checkDRMSupport();
   }
 
   async transferPlaybackToDevice(): Promise<void> {

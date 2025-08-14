@@ -76,6 +76,7 @@ class SpotifyAuth {
     const code_verifier = this.generateCodeVerifier();
     const code_challenge = await this.generateCodeChallenge(code_verifier);
 
+    console.log('Storing code verifier for OAuth flow');
     localStorage.setItem('spotify_code_verifier', code_verifier);
 
     const params = new URLSearchParams({
@@ -197,29 +198,38 @@ class SpotifyAuth {
     const code = urlParams.get('code');
     const error = urlParams.get('error');
 
+    console.log('handleRedirect called with:', { code: !!code, error, pathname: window.location.pathname });
+
     if (error) {
       this.logout();
       throw new Error(`Spotify auth error: ${error}`);
     }
 
-    if (code && window.location.pathname === '/auth/spotify/callback') {
+    if (code && window.location.pathname.includes('/auth/spotify/callback')) {
       const processedCode = sessionStorage.getItem('spotify_processed_code');
       if (processedCode === code) {
+        console.log('Code already processed, redirecting to /');
         window.history.replaceState({}, document.title, '/');
         return;
       }
 
+      const codeVerifier = localStorage.getItem('spotify_code_verifier');
+      console.log('Code verifier present:', !!codeVerifier);
+
       try {
         await this.handleAuthCallback(code);
         sessionStorage.setItem('spotify_processed_code', code);
+        console.log('Auth callback successful, redirecting to /');
         window.history.replaceState({}, document.title, '/');
       } catch (e) {
+        console.error('Auth callback failed:', e);
         sessionStorage.removeItem('spotify_processed_code');
 
         if (e instanceof Error && e.message.includes('Code verifier not found')) {
+          console.log('Code verifier not found, preventing redirect loop');
           this.logout();
-          await this.redirectToAuth();
-          return;
+          // Don't redirect to auth again - this causes infinite loop
+          throw new Error('Authentication failed: Please try logging in again');
         }
 
         this.logout();

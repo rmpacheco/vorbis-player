@@ -15,6 +15,7 @@ import { usePlayerState } from '../hooks/usePlayerState';
 import { usePlaylistManager } from '../hooks/usePlaylistManager';
 import { theme } from '@/styles/theme';
 import { DEFAULT_GLOW_RATE, DEFAULT_GLOW_INTENSITY } from './AccentColorGlowOverlay';
+import { DRMWarningModal } from './DRMWarningModal';
 
 
 const Container = styled.div`
@@ -134,6 +135,10 @@ const AudioPlayerComponent = () => {
   const [savedGlowIntensity, setSavedGlowIntensity] = useState<number | null>(null);
   const [savedGlowRate, setSavedGlowRate] = useState<number | null>(null);
 
+  // DRM warning state
+  const [showDRMWarning, setShowDRMWarning] = useState(false);
+  const [isDRMSupported, setIsDRMSupported] = useState<boolean | null>(null);
+
   // Use global glow settings
   const effectiveGlow = { intensity: glowIntensity, rate: glowRate };
 
@@ -147,6 +152,24 @@ const AudioPlayerComponent = () => {
     setGlowRate(rate);
     setSavedGlowRate(rate);
   }, []);
+
+  const handleCloseDRMWarning = useCallback(() => {
+    setShowDRMWarning(false);
+  }, []);
+
+  const handleOpenInBrowser = useCallback(() => {
+    const currentUrl = window.location.href;
+    console.log(`Opening in browser due to DRM support status: ${isDRMSupported}`);
+    // Open in the user's default browser
+    if (window.electronAPI) {
+      // If running in Electron, use shell.openExternal
+      window.open(currentUrl, '_blank');
+    } else {
+      // If running in a browser, just reload or redirect
+      window.open(currentUrl, '_blank');
+    }
+    setShowDRMWarning(false);
+  }, [isDRMSupported]);
 
   const playTrack = useCallback(async (index: number) => {
     if (tracks[index]) {
@@ -219,6 +242,29 @@ const AudioPlayerComponent = () => {
     };
 
     handleAuthRedirect();
+  }, []);
+
+  // Check DRM support when component mounts
+  useEffect(() => {
+    const checkDRMSupport = async () => {
+      try {
+        const drmSupported = await spotifyPlayer.isDRMSupported();
+        setIsDRMSupported(drmSupported);
+        
+        if (!drmSupported) {
+          console.warn('🔒 DRM (Widevine) not available. Spotify playback will not work.');
+          setShowDRMWarning(true);
+        } else {
+          console.log('✅ DRM (Widevine) is available. Spotify playback should work.');
+        }
+      } catch (error) {
+        console.error('Failed to check DRM support:', error);
+        setIsDRMSupported(false);
+        setShowDRMWarning(true);
+      }
+    };
+    
+    checkDRMSupport();
   }, []);
 
   useEffect(() => {
@@ -482,6 +528,11 @@ const AudioPlayerComponent = () => {
   return (
     <Container>
       {renderContent()}
+      <DRMWarningModal 
+        isOpen={showDRMWarning}
+        onClose={handleCloseDRMWarning}
+        onOpenInBrowser={handleOpenInBrowser}
+      />
     </Container>
   );
 };
