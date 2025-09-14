@@ -20,10 +20,10 @@ import { DEFAULT_GLOW_RATE, DEFAULT_GLOW_INTENSITY } from './AccentColorGlowOver
 const Container = styled.div`
   width: 100%;
   ${flexCenter};
-  padding: ${({ theme }: any) => theme.spacing.sm};
+  padding: ${({ theme }) => theme.spacing.sm};
   
-  @media (min-width: ${({ theme }: any) => theme.breakpoints.sm}) {
-    padding: ${({ theme }: any) => theme.spacing.sm};
+  @media (min-width: ${({ theme }) => theme.breakpoints.sm}) {
+    padding: ${({ theme }) => theme.spacing.sm};
   }
 `;
 
@@ -265,7 +265,8 @@ const AudioPlayerComponent = () => {
             }
           }
         }
-      } catch (error) {
+      } catch {
+        // Ignore polling errors
       }
     };
 
@@ -308,7 +309,7 @@ const AudioPlayerComponent = () => {
           } else {
             setAccentColor(theme.colors.accent);
           }
-        } catch (error) {
+        } catch {
           setAccentColor(theme.colors.accent);
         }
       } else {

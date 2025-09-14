@@ -12,7 +12,7 @@ export interface ProfilerData {
   baseDuration: number;
   startTime: number;
   commitTime: number;
-  interactions: Set<any>;
+  interactions: Set<unknown>;
 }
 
 interface PerformanceProfilerProps {
@@ -155,8 +155,8 @@ export const PerformanceDebugger: React.FC<{
       
       {isExpanded && (
         <div style={{ marginTop: '0.5rem' }}>
-          <div>Memory: {(performance as any).memory ? 
-            `${((performance as any).memory.usedJSHeapSize / 1024 / 1024).toFixed(1)}MB` : 
+          <div>Memory: {(performance as unknown as { memory?: { usedJSHeapSize: number } }).memory ? 
+            `${(((performance as unknown as { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize / 1024 / 1024).toFixed(1))}MB` : 
             'N/A'
           }</div>
           <div>Frame Rate: ~{Math.round(1000 / 16.67)}fps target</div>

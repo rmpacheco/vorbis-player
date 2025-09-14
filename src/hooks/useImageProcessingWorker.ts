@@ -37,7 +37,7 @@ export const useImageProcessingWorker = (): UseImageProcessingWorkerReturn => {
         // Handle worker messages
         workerRef.current.onmessage = (event: MessageEvent<WorkerResponse>) => {
           const { type } = event.data;
-          const requestId = (event.data as any).requestId;
+          const requestId = (event.data as WorkerResponse & { requestId: string }).requestId;
           const pendingPromise = pendingPromisesRef.current.get(requestId);
           
           if (!pendingPromise) {
